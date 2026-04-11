@@ -13,7 +13,7 @@ COPY . .
 # Create upload directory
 RUN mkdir -p /tmp/vulnlab_uploads
 
-EXPOSE 5000
+EXPOSE 5002
 
 ENV FLASK_ENV=development
 ENV PYTHONUNBUFFERED=1

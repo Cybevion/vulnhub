@@ -4,7 +4,7 @@ services:
   vulnlab:
     build: .
     ports:
-      - "5005:5005"
+      - "5005:5002"
     volumes:
       - uploads:/tmp/vulnlab_uploads
     environment:
