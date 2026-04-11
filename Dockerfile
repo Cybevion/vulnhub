@@ -18,4 +18,4 @@ EXPOSE 5000
 ENV FLASK_ENV=development
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "app.py"]
+CMD ["python3", "-c", "from app import app, init_db; init_db(); app.run(host='0.0.0.0', port=5002, debug=False, use_reloader=False)"]
