@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}CSRF — Transfer{% endblock %}
+{% block content %}
+<h1 class="page-title">CSRF — Cross-Site Request Forgery</h1>
+<p class="page-subtitle">A01:2021 · Your browser auto-sends cookies — an attacker's page can trigger authenticated actions</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}CSRF token required — cross-site form submissions rejected.{% else %}No CSRF token — any site can trigger a transfer on your behalf.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💸</span><span class="card-title">Fund Transfer</span></div>
+      <form method="POST" action="/csrf/transfer?safe={{ '1' if safe else '0' }}">
+        {% if safe %}<input type="hidden" name="csrf_token" value="{{ csrf_token }}">{% endif %}
+        <div class="form-group">
+          <label class="form-label">Transfer To</label>
+          <input name="to_user" class="form-input" placeholder="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount ($)</label>
+          <input name="amount" type="number" class="form-input" placeholder="100" value="100">
+        </div>
+        <button type="submit" class="btn btn-green" style="width:100%;">Transfer →</button>
+      </form>
+      {% if safe %}
+      <div style="font-size:11px;color:var(--gray);margin-top:0.5rem;">CSRF Token: <code style="color:var(--green);">{{ csrf_token[:16] }}...</code></div>
+      {% else %}
+      <div class="alert alert-warn" style="margin-top:0.75rem;">No CSRF token in this form. Check page source.</div>
+      {% endif %}
+      {% if message %}<div class="alert alert-success">✓ {{ message }}</div>{% endif %}
+      {% if error %}<div class="alert alert-danger">✗ {{ error }}</div>{% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span>🎭</span><span class="card-title">Attack PoC — Evil Page</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">An attacker hosts this page. Victim visits it while logged into VulnLab → transfer fires automatically:</div>
+      <div class="code-block" style="font-size:11px;">{{ csrf_poc | e }}</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">How CSRF Works</span></div>
+      <div class="code-block" style="font-size:11px;">1. Victim logs into bank.com
+   → Gets session cookie: session=abc123
+
+2. Victim visits evil.com
+   → evil.com has a hidden auto-submit form
+   → Target: bank.com/transfer
+
+3. Browser sends POST to bank.com
+   → Automatically includes session=abc123
+   → Bank sees authenticated request
+
+4. Transfer happens without victim knowing</div>
+      <div class="alert alert-info" style="margin-top:1rem;"><strong>Fix:</strong> CSRF tokens — random secret embedded in form. Attacker cannot read it cross-origin (SOP). Also: SameSite=Strict cookie attribute blocks this entirely in modern browsers.</div>
+      <div class="alert alert-warn"><strong>Note:</strong> XSS defeats CSRF tokens — if attacker can run JS on your domain, they can read the token. Fix XSS first.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

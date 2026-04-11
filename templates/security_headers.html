@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Security Headers{% endblock %}
+{% block content %}
+<h1 class="page-title">Security Headers</h1>
+<p class="page-subtitle">A05:2021 · Missing headers enable entire attack classes — XSS, clickjacking, protocol downgrade</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}All recommended security headers present in the HTTP response.
+  {% else %}No security headers — check the response in Burp or DevTools.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>🛡️</span><span class="card-title">Current Response Headers</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Open DevTools → Network tab → click this page → Headers tab to see live response headers.</div>
+
+      {% set headers_table = [
+        ("Content-Security-Policy", "Blocks XSS by whitelisting script sources", "CRITICAL"),
+        ("Strict-Transport-Security", "Forces HTTPS — prevents protocol downgrade", "HIGH"),
+        ("X-Frame-Options", "Blocks clickjacking via iframes", "HIGH"),
+        ("X-Content-Type-Options", "Stops MIME sniffing attacks", "MEDIUM"),
+        ("Referrer-Policy", "Prevents URL leakage in Referer header", "MEDIUM"),
+        ("Permissions-Policy", "Disables unused browser features (camera, mic)", "LOW"),
+      ] %}
+
+      <table class="table">
+        <thead><tr><th>Header</th><th>Purpose</th><th>Severity if Missing</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for header, purpose, sev in headers_table %}
+        <tr>
+          <td><code style="font-size:11px;color:var(--blue);">{{ header }}</code></td>
+          <td style="font-size:11px;color:var(--gray);">{{ purpose }}</td>
+          <td>
+            <span class="tag {% if sev == 'CRITICAL' %}tag-red{% elif sev == 'HIGH' %}tag-yellow{% else %}tag-blue{% endif %}">{{ sev }}</span>
+          </td>
+          <td>
+            {% if safe %}
+            <span class="tag tag-green">✓ Present</span>
+            {% else %}
+            <span class="tag tag-red">✗ Missing</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span>⚡</span><span class="card-title">Quick Check Commands</span></div>
+      <div class="code-block" style="font-size:11px;"># Check headers with curl
+curl -I http://localhost:5000/headers?safe=0
+curl -I http://localhost:5000/headers?safe=1
+
+# Online scanner (for public sites):
+# → securityheaders.com
+# → observatory.mozilla.org</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">Safe Mode Headers</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Flask code that adds these headers:</div>
+      <div class="code-block" style="font-size:10.5px;">@app.after_request
+def add_security_headers(resp):
+    resp.headers['Content-Security-Policy'] = \
+      "default-src 'self'; script-src 'self'"
+    resp.headers['X-Frame-Options'] = 'DENY'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    resp.headers['Strict-Transport-Security'] = \
+      'max-age=31536000; includeSubDomains'
+    resp.headers['Referrer-Policy'] = 'no-referrer'
+    resp.headers['Permissions-Policy'] = \
+      'geolocation=(), camera=(), microphone=()'
+    return resp</div>
+
+      <div class="alert alert-info" style="margin-top:1rem;">
+        <strong>Clickjacking demo:</strong> Without X-Frame-Options, this page can be embedded in an iframe on an attacker's site. The attacker overlays a transparent button — victim clicks their button but actually clicks yours.
+      </div>
+
+      <div style="margin-top:1rem;padding:0.75rem;background:#010409;border:1px solid var(--border);border-radius:6px;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.5rem;">Clickjacking PoC (works without X-Frame-Options):</div>
+        <div class="code-block" style="font-size:10.5px;margin:0;">&lt;style&gt;
+  iframe { opacity:0.01; position:absolute;
+    top:0; left:0; width:100%; height:100%; }
+&lt;/style&gt;
+&lt;button&gt;Win a Prize!&lt;/button&gt;
+&lt;iframe src="http://localhost:5000/csrf/transfer?safe=0"&gt;
+&lt;/iframe&gt;</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

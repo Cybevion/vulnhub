@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VulnLab — Presentation Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0d1117;
+  --bg2:     #161b22;
+  --panel:   #21262d;
+  --border:  #30363d;
+  --green:   #39d353;
+  --green2:  #1a7f37;
+  --red:     #ff4757;
+  --yellow:  #ffa502;
+  --blue:    #1e90ff;
+  --purple:  #9b59b6;
+  --cyan:    #00cec9;
+  --orange:  #e17055;
+  --light:   #c9d1d9;
+  --gray:    #8b949e;
+  --mono:    'JetBrains Mono', monospace;
+  --head:    'Syne', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--light);
+  font-family: var(--mono);
+  font-size: 13px;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* scanlines */
+body::after {
+  content:''; position:fixed; inset:0;
+  background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);
+  pointer-events:none; z-index:9999;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  height: 48px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  gap: 1rem;
+  flex-shrink: 0;
+  z-index: 200;
+}
+
+.logo {
+  font-family: var(--head);
+  font-weight: 900;
+  font-size: 1rem;
+  color: var(--green);
+  letter-spacing: 2px;
+}
+.logo span { color: var(--red); }
+
+.module-counter {
+  font-size: 11px;
+  color: var(--gray);
+  margin-left: 0.5rem;
+}
+.module-counter strong { color: var(--yellow); }
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.nav-btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--light);
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex; align-items: center; gap: 0.35rem;
+}
+.nav-btn:hover { border-color: var(--green); color: var(--green); }
+.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.safe-pill {
+  display: flex;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  font-size: 11px;
+  margin-left: 0.5rem;
+}
+.safe-pill button {
+  padding: 0.25rem 0.75rem;
+  border: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+  color: var(--gray);
+}
+.safe-pill button.active-vuln { background: rgba(255,71,87,0.2); color: var(--red); }
+.safe-pill button.active-safe { background: rgba(57,211,83,0.2); color: var(--green); }
+
+.notes-btn {
+  background: rgba(155,89,182,0.15);
+  border: 1px solid rgba(155,89,182,0.4);
+  color: var(--purple);
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.notes-btn:hover { background: rgba(155,89,182,0.3); }
+
+/* ── MAIN AREA ── */
+.main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── SIDEBAR MODULE LIST ── */
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 0.75rem 0;
+  scrollbar-width: thin;
+}
+
+.sidebar-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--gray);
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--gray);
+  border-left: 2px solid transparent;
+  transition: all 0.12s;
+  line-height: 1.3;
+}
+.sidebar-item:hover { color: var(--light); background: rgba(255,255,255,0.03); }
+.sidebar-item.active {
+  color: var(--green);
+  background: rgba(57,211,83,0.08);
+  border-left-color: var(--green);
+}
+.sidebar-item .sev {
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.sev-c { background: rgba(255,71,87,0.2);  color: var(--red);    border: 1px solid rgba(255,71,87,0.3); }
+.sev-h { background: rgba(255,165,2,0.2);  color: var(--yellow); border: 1px solid rgba(255,165,2,0.3); }
+.sev-m { background: rgba(30,144,255,0.2); color: var(--blue);   border: 1px solid rgba(30,144,255,0.3); }
+
+/* ── CONTENT AREA ── */
+.content-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── THEORY PANEL ── */
+.theory-panel {
+  width: 50%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+}
+
+.theory-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  scrollbar-width: thin;
+}
+
+/* Module header */
+.mod-header {
+  margin-bottom: 1.25rem;
+}
+.mod-owasp {
+  font-size: 10px;
+  color: var(--gray);
+  letter-spacing: 1px;
+  margin-bottom: 0.3rem;
+}
+.mod-title {
+  font-family: var(--head);
+  font-weight: 800;
+  font-size: 1.6rem;
+  color: var(--green);
+  line-height: 1.1;
+  margin-bottom: 0.4rem;
+}
+.mod-tagline {
+  font-size: 12px;
+  color: var(--gray);
+  line-height: 1.5;
+}
+
+/* Sections */
+.section {
+  margin-bottom: 1.25rem;
+}
+.section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gray);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.what-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 0 6px 6px 0;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--light);
+}
+
+/* Flow steps */
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.flow-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 12px;
+}
+.flow-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--green2);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.flow-text { color: var(--light); line-height: 1.5; }
+.flow-code { color: var(--green); font-family: var(--mono); }
+
+/* Impact box */
+.impact-box {
+  background: rgba(255,71,87,0.06);
+  border: 1px solid rgba(255,71,87,0.25);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+.impact-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--red);
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+.impact-case {
+  font-size: 12px;
+  color: var(--light);
+  line-height: 1.6;
+}
+.impact-case strong { color: var(--yellow); }
+
+/* Payload list */
+.payload-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.payload-item {
+  background: #010409;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.payload-item:hover { border-color: var(--red); }
+.payload-code { font-size: 11px; color: var(--red); font-family: var(--mono); word-break: break-all; }
+.payload-desc { font-size: 10px; color: var(--gray); margin-top: 3px; }
+
+/* Code diff */
+.diff-block {
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+}
+.diff-header {
+  font-size: 10px;
+  padding: 0.35rem 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.diff-vuln .diff-header { background: rgba(255,71,87,0.15); color: var(--red); }
+.diff-safe .diff-header { background: rgba(57,211,83,0.1); color: var(--green); }
+.diff-code {
+  background: #010409;
+  padding: 0.75rem;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--green);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.diff-vuln .diff-code { color: #ff8a95; }
+
+/* ── DEMO PANEL ── */
+.demo-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  position: relative;
+}
+
+.demo-topbar {
+  height: 38px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.demo-label {
+  font-size: 10px;
+  color: var(--gray);
+  letter-spacing: 1px;
+}
+
+.demo-url {
+  font-size: 10px;
+  color: var(--green2);
+  font-family: var(--mono);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.2rem 0.5rem;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fullscreen-btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--gray);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: auto;
+}
+.fullscreen-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+.demo-iframe {
+  flex: 1;
+  border: none;
+  background: var(--bg);
+}
+
+/* ── FULLSCREEN DEMO OVERLAY ── */
+.fullscreen-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 500;
+  flex-direction: column;
+}
+.fullscreen-overlay.active { display: flex; }
+
+.fs-topbar {
+  height: 44px;
+  background: var(--bg2);
+  border-bottom: 2px solid var(--red);
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+.fs-title { font-family: var(--head); font-weight: 700; color: var(--red); font-size: 1rem; }
+.fs-close {
+  margin-left: auto;
+  background: rgba(255,71,87,0.15);
+  border: 1px solid rgba(255,71,87,0.4);
+  color: var(--red);
+  padding: 0.3rem 1rem;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.fs-close:hover { background: rgba(255,71,87,0.3); }
+.fs-iframe { flex: 1; border: none; }
+
+/* ── INTRO / TITLE SLIDE ── */
+.intro-slide {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 2rem;
+  background: var(--bg);
+}
+.intro-title {
+  font-family: var(--head);
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: var(--green);
+  letter-spacing: 4px;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.intro-sub {
+  font-size: 1.1rem;
+  color: var(--yellow);
+  font-family: var(--mono);
+  margin-bottom: 1.5rem;
+}
+.intro-meta { font-size: 12px; color: var(--gray); }
+.intro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 2rem;
+  max-width: 700px;
+}
+.intro-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  text-align: center;
+}
+.intro-card .num { font-family: var(--head); font-size: 1.6rem; font-weight: 800; }
+.intro-card .lbl { font-size: 10px; color: var(--gray); margin-top: 2px; letter-spacing: 1px; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* progress bar */
+.progress-bar {
+  height: 2px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--green);
+  transition: width 0.3s ease;
+}
+</style>
+</head>
+<body>
+
+<!-- ── TOP BAR ── -->
+<div class="topbar">
+  <div class="logo">VULN<span>LAB</span></div>
+  <div class="module-counter">
+    Module <strong id="mod-num">0</strong> / <strong>14</strong>
+  </div>
+
+  <div class="topbar-nav">
+    <button class="nav-btn" id="btn-prev" onclick="navigate(-1)">← Prev</button>
+    <button class="nav-btn" id="btn-next" onclick="navigate(1)">Next →</button>
+
+    <div class="safe-pill">
+      <button id="pill-vuln" onclick="setSafe(0)">⚠ Vuln</button>
+      <button id="pill-safe" onclick="setSafe(1)">✓ Safe</button>
+    </div>
+
+    <a href="/notes" target="_blank" class="notes-btn">🗒 Speaker Notes ↗</a>
+    <a href="/" class="nav-btn" style="margin-left:0.25rem;">Dashboard</a>
+  </div>
+</div>
+
+<!-- progress -->
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-label">Modules</div>
+  </aside>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Theory Panel -->
+    <div class="theory-panel">
+      <div class="theory-scroll" id="theory-scroll"></div>
+    </div>
+
+    <!-- Demo Panel -->
+    <div class="demo-panel">
+      <div class="demo-topbar">
+        <span class="demo-label">LIVE DEMO</span>
+        <span class="demo-url" id="demo-url-display">/</span>
+        <button class="fullscreen-btn" onclick="openFullscreen()">⛶ Fullscreen</button>
+        <button class="nav-btn" onclick="reloadDemo()" style="margin-left:0.25rem;">↺ Reset</button>
+      </div>
+      <iframe class="demo-iframe" id="demo-iframe" src="/"></iframe>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── FULLSCREEN OVERLAY ── -->
+<div class="fullscreen-overlay" id="fs-overlay">
+  <div class="fs-topbar">
+    <span class="fs-title" id="fs-title">Demo</span>
+    <div class="safe-pill" style="margin-left:1rem;">
+      <button id="fs-pill-vuln" onclick="setSafe(0)">⚠ Vuln</button>
+      <button id="fs-pill-safe" onclick="setSafe(1)">✓ Safe</button>
+    </div>
+    <button class="nav-btn" onclick="reloadDemo()" style="margin-left:0.5rem;">↺ Reset</button>
+    <button class="fs-close" onclick="closeFullscreen()">✕ Close Fullscreen  [Esc]</button>
+  </div>
+  <iframe class="fs-iframe" id="fs-iframe" src="/"></iframe>
+</div>
+
+<script src="/static/js/presentation_data.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  vulnlab:
+    build: .
+    ports:
+      - "5005:5005"
+    volumes:
+      - uploads:/tmp/vulnlab_uploads
+    environment:
+      - FLASK_ENV=development
+    restart: unless-stopped
+
+volumes:
+  uploads:

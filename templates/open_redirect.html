@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Open Redirect{% endblock %}
+{% block content %}
+<h1 class="page-title">Open Redirect</h1>
+<p class="page-subtitle">A01:2021 · Unvalidated redirect parameter sends users to arbitrary external sites</p>
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Redirect targets validated against allowlist — external URLs rejected.{% else %}Any URL accepted as redirect destination.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>↪️</span><span class="card-title">Test Redirect</span></div>
+      <form method="GET" action="/redirect/demo">
+        <input name="safe" type="hidden" value="{{ '1' if safe else '0' }}">
+        <div style="display:flex;gap:0.75rem;margin-bottom:0.75rem;">
+          <input name="url" class="form-input" placeholder="https://evil.com" value="{{ url | e }}">
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <a href="/redirect?url={{ url | urlencode }}&safe={{ '1' if safe else '0' }}" class="btn btn-blue">Test Redirect →</a>
+        </div>
+      </form>
+      {% if warning %}<div class="alert alert-success" style="margin-top:0.75rem;">🔒 {{ warning }}</div>{% endif %}
+      <div style="margin-top:1rem;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.5rem;">Attack URLs:</div>
+        {% for target in ["https://evil.com", "https://phishing-bank.com/fake-login", "//evil.com"] %}
+        <a href="/redirect/demo?safe={{ '1' if safe else '0' }}&url={{ target | urlencode }}" style="display:block;background:#010409;border:1px solid var(--border);border-radius:4px;padding:0.4rem 0.75rem;margin-bottom:0.3rem;text-decoration:none;font-size:11px;color:var(--red);">
+          /redirect?url={{ target }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">Attack Scenarios</span></div>
+      <div class="code-block" style="font-size:11px;"># Phishing link (looks legitimate):
+https://legit-bank.com/redirect?url=https://phishing.com
+
+# OAuth token theft:
+GET /oauth/authorize?redirect_uri=https://evil.com
+→ Auth code sent to attacker
+
+# SSRF via redirect:
+/redirect?url=http://169.254.169.254/
+→ Server follows redirect → SSRF</div>
+      <div class="alert alert-info" style="margin-top:1rem;"><strong>Fix:</strong> Allowlist redirect destinations. Never use raw user input as redirect target. If redirecting after login, use relative paths only.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

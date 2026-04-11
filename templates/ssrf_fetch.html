@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}SSRF{% endblock %}
+{% block content %}
+<h1 class="page-title">SSRF — Server-Side Request Forgery</h1>
+<p class="page-subtitle">A10:2021 · URL fetch feature fetches any URL — including cloud metadata and internal services</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Internal IP blocklist enforced — cloud metadata and RFC1918 ranges rejected.{% else %}Any URL accepted — including 169.254.169.254 (AWS metadata).{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>🌐</span><span class="card-title">URL Fetch (Link Preview Feature)</span></div>
+      <form method="GET" action="/ssrf/fetch">
+        <input name="safe" type="hidden" value="{{ '1' if safe else '0' }}">
+        <div style="display:flex;gap:0.75rem;">
+          <input name="url" class="form-input" placeholder="https://example.com" value="{{ url | e }}">
+          <button type="submit" class="btn btn-green">Fetch</button>
+        </div>
+      </form>
+
+      {% if blocked %}<div class="alert alert-success" style="margin-top:0.75rem;">🔒 {{ error }}</div>
+      {% elif error %}<div class="alert alert-danger" style="margin-top:0.75rem;">{{ error }}</div>
+      {% endif %}
+
+      {% if result %}
+      <div style="margin-top:1rem;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.5rem;">Response from server:</div>
+        <div class="code-block" style="max-height:300px;overflow-y:auto;font-size:11px;white-space:pre-wrap;">{{ result | e }}</div>
+      </div>
+      {% endif %}
+
+      <div style="margin-top:1rem;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.5rem;">Attack URLs to try (vulnerable mode):</div>
+        {% set targets = [
+          ("http://169.254.169.254/latest/meta-data/", "AWS root metadata"),
+          ("http://169.254.169.254/latest/meta-data/iam/security-credentials/", "IAM role name"),
+          ("http://169.254.169.254/latest/meta-data/iam/security-credentials/EC2InstanceRole", "IAM credentials 🔑"),
+          ("http://localhost/admin", "Internal admin panel"),
+          ("http://127.0.0.1:6379", "Redis on localhost"),
+        ] %}
+        {% for target, desc in targets %}
+        <a href="/ssrf/fetch?safe=0&url={{ target | urlencode }}" style="display:block;background:#010409;border:1px solid var(--border);border-radius:4px;padding:0.5rem 0.75rem;margin-bottom:0.35rem;text-decoration:none;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border)'">
+          <code style="font-size:10.5px;color:var(--red);">{{ target }}</code>
+          <span style="font-size:10px;color:var(--gray);margin-left:0.75rem;">{{ desc }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">Capital One 2019</span></div>
+      <div style="font-size:12px;color:var(--light);line-height:1.7;">
+        A misconfigured WAF had an SSRF vulnerability. Attacker:<br><br>
+        <code style="font-size:11px;color:var(--red);">→ SSRF to 169.254.169.254</code><br>
+        <code style="font-size:11px;color:var(--red);">→ Got IAM role credentials</code><br>
+        <code style="font-size:11px;color:var(--red);">→ Listed all S3 buckets</code><br>
+        <code style="font-size:11px;color:var(--red);">→ Downloaded 100M+ customer records</code><br><br>
+        <span style="color:var(--gray);">Cost: $190M in fines + settlements. One SSRF endpoint.</span>
+      </div>
+      <div class="alert alert-info" style="margin-top:1rem;">
+        <strong>Defence:</strong><br>
+        • Block 169.254.0.0/16, 10.x, 192.168.x, 172.16-31.x<br>
+        • Allow only https:// schema<br>
+        • Validate AFTER DNS resolution<br>
+        • Use IMDSv2 (requires PUT + session header)<br>
+        • Isolated network for URL fetching
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

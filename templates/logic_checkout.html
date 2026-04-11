@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Business Logic — Price Tampering{% endblock %}
+{% block content %}
+<h1 class="page-title">Business Logic — Price Tampering</h1>
+<p class="page-subtitle">A04:2021 · App trusts client-supplied price — intercept in Burp and change it to 0.01</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Server uses its own price database — client-supplied price value is ignored.
+  {% else %}Server trusts the price field submitted in the form — change it to anything.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>🛒</span><span class="card-title">Shop</span></div>
+
+      {% if message %}<div class="alert alert-success">✓ {{ message }}</div>{% endif %}
+      {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+      {% for item in items %}
+      <form method="POST" action="/logic/checkout?safe={{ '1' if safe else '0' }}" style="margin-bottom:1rem;">
+        <input type="hidden" name="item_id" value="{{ item.id }}">
+        <div style="background:#010409;border:1px solid var(--border);border-radius:6px;padding:1rem;display:flex;align-items:center;gap:1rem;">
+          <div style="flex:1;">
+            <div style="font-weight:700;color:var(--white);">{{ item.name }}</div>
+            <div style="font-size:12px;color:var(--gray);">Server price: ${{ "%.2f"|format(item.server_price) }}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <div>
+              <label style="font-size:10px;color:var(--gray);">Qty</label>
+              <input name="quantity" type="number" value="1" min="1" class="form-input" style="width:60px;padding:0.3rem 0.5rem;font-size:12px;">
+            </div>
+            <div>
+              <label style="font-size:10px;color:{% if safe %}var(--gray){% else %}var(--red){% endif %};">
+                Price {% if not safe %}← CHANGE THIS{% endif %}
+              </label>
+              <input name="price" type="number" step="0.01" value="{{ item.server_price }}" class="form-input" style="width:90px;padding:0.3rem 0.5rem;font-size:12px;{% if not safe %}border-color:var(--red);{% endif %}">
+            </div>
+            <div style="margin-top:1rem;">
+              <button type="submit" class="btn btn-green" style="padding:0.4rem 0.8rem;font-size:12px;">Buy →</button>
+            </div>
+          </div>
+        </div>
+      </form>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">The Attack</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Using Burp Suite to intercept and modify the POST:</div>
+
+      <div class="code-block" style="font-size:11px;">POST /logic/checkout HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+
+item_id=1&quantity=1&price=<span style="color:var(--red);">0.01</span>
+
+→ Order placed: Laptop Pro x1 = $0.01 💀</div>
+
+      <div style="margin-top:1rem;font-size:12px;color:var(--gray);margin-bottom:0.5rem;">More logic bugs to consider:</div>
+
+      {% for bug, desc in [
+        ("Negative quantity", "quantity=-1 → refund issued + item delivered"),
+        ("Negative price", "price=-999 → credit to your balance"),
+        ("Float overflow", "quantity=99999999 → integer overflow → 0 or negative"),
+        ("Coupon stacking", "Apply same coupon code in rapid succession (race condition)"),
+        ("Step skipping", "POST to /checkout/confirm without going through /cart"),
+      ] %}
+      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.5rem 0.75rem;margin-bottom:0.35rem;">
+        <div style="font-size:11px;font-weight:700;color:var(--orange);">{{ bug }}</div>
+        <div style="font-size:10.5px;color:var(--gray);margin-top:2px;">{{ desc }}</div>
+      </div>
+      {% endfor %}
+
+      <div class="alert alert-info" style="margin-top:1rem;">
+        <strong>Fix:</strong> Never trust client-supplied prices. Look up the price from the database using the item ID on the server. The client should only send: item_id and quantity.
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

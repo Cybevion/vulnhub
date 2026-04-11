@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}SQLi — Auth Bypass{% endblock %}
+{% block content %}
+
+<h1 class="page-title">SQL Injection — Auth Bypass</h1>
+<p class="page-subtitle">A03:2021 · String concatenation lets attackers manipulate the query logic</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}
+    Using parameterised queries — user input is never concatenated into SQL.
+  {% else %}
+    Using string concatenation — input lands directly in the SQL query.
+  {% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">
+    Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode
+  </button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>🔐</span><span class="card-title">Login Form</span></div>
+      <form method="POST" action="/sqli/login?safe={{ '1' if safe else '0' }}">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input name="username" class="form-input" placeholder="try: ' OR '1'='1" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input name="password" type="text" class="form-input" placeholder="anything" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-green" style="width:100%;">Login →</button>
+      </form>
+
+      {% if query_shown %}
+      <div style="margin-top:1rem;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.35rem;">Query executed:</div>
+        <div class="query-display">{{ query_shown }}</div>
+      </div>
+      {% endif %}
+
+      {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
+
+      {% if result %}
+      <div class="alert alert-success">✓ Logged in as: <strong>{{ result.username }}</strong> (role: {{ result.role }})</div>
+      <div class="code-block" style="font-size:11px;">{{ result | tojson(indent=2) }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">How It Works</span></div>
+
+      <div style="font-size:12px;color:var(--gray);margin-bottom:1rem;">The vulnerable query:</div>
+      <div class="code-block">SELECT * FROM users
+WHERE username='<span style="color:var(--red);">{input}</span>'
+  AND password='<span style="color:var(--red);">{input}</span>'</div>
+
+      <div style="font-size:12px;color:var(--gray);margin:1rem 0 0.5rem;">Attack payloads to try:</div>
+
+      {% set payloads = [
+        ("' OR '1'='1", "any", "Closes quote, adds always-true condition. Bypasses WHERE clause."),
+        ("admin'--", "anything", "Logs in as admin by commenting out the password check."),
+        ("' OR 1=1--", "x", "Same bypass using numeric comparison."),
+        ("' UNION SELECT 1,'hacked','hacked','hacked@x.com','admin',9999,'x','x'--", "x", "UNION inject to log in with crafted row."),
+      ] %}
+
+      {% for user, pw, desc in payloads %}
+      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.75rem;margin-bottom:0.5rem;">
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.35rem;">
+          <span style="font-size:11px;color:var(--gray);">user:</span>
+          <code style="font-size:11px;color:var(--red);">{{ user }}</code>
+          <span style="font-size:11px;color:var(--gray);margin-left:0.5rem;">pass:</span>
+          <code style="font-size:11px;color:var(--gray);">{{ pw }}</code>
+        </div>
+        <div style="font-size:11px;color:var(--gray);">{{ desc }}</div>
+      </div>
+      {% endfor %}
+
+      <div class="alert alert-info" style="margin-top:1rem;">
+        <strong>Fix:</strong> Use parameterised queries. <code>conn.execute("... WHERE username=? AND password=?", (u, p))</code> — input is always treated as data, never as SQL.
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

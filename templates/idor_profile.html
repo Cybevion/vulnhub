@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}IDOR — Profile{% endblock %}
+{% block content %}
+
+<h1 class="page-title">IDOR — Insecure Direct Object Reference</h1>
+<p class="page-subtitle">A01:2021 · Change the ?id= parameter to access any user's data</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Server checks: requested ID must match your session. Any other ID returns 403.
+  {% else %}Server fetches whatever ID you request — no ownership check.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>👤</span><span class="card-title">View Profile</span></div>
+
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
+        {% for uid in [1,2,3,4] %}
+        <a href="/idor/profile?id={{ uid }}&safe={{ '1' if safe else '0' }}"
+           class="btn {% if target_id|int == uid %}btn-green{% else %}btn-blue{% endif %}"
+           style="font-size:11px;padding:0.3rem 0.8rem;">
+          User #{{ uid }}{% if own_id == uid %} (you){% endif %}
+        </a>
+        {% endfor %}
+      </div>
+
+      {% if error %}
+      <div class="alert alert-danger">🔒 {{ error }}</div>
+      {% elif profile %}
+      <div style="background:#010409;border:1px solid {% if target_id|int != own_id %}var(--red){% else %}var(--green){% endif %};border-radius:6px;padding:1rem;">
+        {% if target_id|int != own_id and not safe %}
+        <div class="alert alert-danger" style="margin-top:0;margin-bottom:0.75rem;">⚠ You are viewing ANOTHER user's profile! This is an IDOR vulnerability.</div>
+        {% endif %}
+        {% for k,v in profile.items() %}
+        <div style="display:flex;gap:1rem;padding:0.35rem 0;border-bottom:1px solid var(--border);{% if loop.last %}border:none;{% endif %}">
+          <span style="font-size:12px;color:var(--gray);width:100px;flex-shrink:0;">{{ k }}</span>
+          <span style="font-size:12px;color:{% if k in ['password','ssn','balance'] %}var(--red){% else %}var(--light){% endif %};">
+            {{ v }}
+            {% if k in ['password','ssn','balance'] %}<span style="font-size:10px;color:var(--gray);margin-left:0.5rem;">[SENSITIVE]</span>{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="alert alert-warn">User not found.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">The Attack</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Login as alice (id=2) — then change the URL:</div>
+      <div class="code-block" style="font-size:11px;">GET /idor/profile?id=2  →  Your own profile ✅
+GET /idor/profile?id=1  →  Admin profile 💀 (password, SSN, balance)
+GET /idor/profile?id=3  →  Bob's data 💀
+GET /idor/profile?id=4  →  Charlie's data 💀</div>
+
+      <div style="margin-top:1rem;font-size:12px;color:var(--gray);">Server code (vulnerable):</div>
+      <div class="code-block" style="font-size:11px;">row = db.execute(
+  "SELECT * FROM users WHERE id=?",
+  (<span style="color:var(--red);">request.args.get("id")</span>)  # ← attacker-controlled!
+)</div>
+
+      <div style="margin-top:1rem;font-size:12px;color:var(--gray);">Server code (safe):</div>
+      <div class="code-block" style="font-size:11px;">target = request.args.get("id")
+if int(target) != session["user_id"]:
+    return 403  # ← ownership check!
+row = db.execute(
+  "SELECT * FROM users WHERE id=?",
+  (session["user_id"],)  # ← use session, not input
+)</div>
+
+      <div class="alert alert-info" style="margin-top:1rem;">Also try: <a href="/idor/orders?safe={{ '1' if safe else '0' }}" style="color:var(--blue);">IDOR on Orders</a> — change user_id to see another user's purchase history.</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

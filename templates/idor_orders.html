@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}IDOR — Orders{% endblock %}
+{% block content %}
+<h1 class="page-title">IDOR — Orders</h1>
+<p class="page-subtitle">A01:2021 · Change user_id parameter to view other users' purchase history</p>
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Ownership enforced — only your orders returned.{% else %}Any user_id accepted — full order history of any account exposed.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>🛒</span><span class="card-title">View Orders</span></div>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
+        {% for uid in [1,2,3,4] %}
+        <a href="/idor/orders?user_id={{ uid }}&safe={{ '1' if safe else '0' }}" class="btn {% if target_id|int == uid %}btn-green{% else %}btn-blue{% endif %}" style="font-size:11px;padding:0.3rem 0.8rem;">User #{{ uid }}{% if own_id == uid %} (you){% endif %}</a>
+        {% endfor %}
+      </div>
+      {% if error %}<div class="alert alert-danger">🔒 {{ error }}</div>
+      {% elif orders %}
+        {% if target_id|int != own_id and not safe %}<div class="alert alert-danger">⚠ Viewing User #{{ target_id }}'s orders!</div>{% endif %}
+        <table class="table">
+          <thead><tr><th>ID</th><th>Item</th><th>Price</th><th>Qty</th><th>Total</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for o in orders %}
+          <tr><td>#{{ o.id }}</td><td>{{ o.item }}</td><td>${{ "%.2f"|format(o.price) }}</td><td>{{ o.quantity }}</td><td>${{ "%.2f"|format(o.total) }}</td><td><span class="tag {% if o.status == 'delivered' %}tag-green{% else %}tag-yellow{% endif %}">{{ o.status }}</span></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      {% else %}<div class="alert alert-warn">No orders found.</div>{% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">Exploit</span></div>
+      <div class="code-block" style="font-size:11px;">GET /idor/orders?user_id=1  →  Admin's orders 💀
+GET /idor/orders?user_id=2  →  Alice's orders
+GET /idor/orders?user_id=3  →  Bob's orders</div>
+      <div class="alert alert-info" style="margin-top:1rem;">Real-world impact: competitors see your purchase history. Attackers see high-value targets (expensive items = wealthy accounts). Privacy regulation breach (GDPR, DPDP Act).</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

