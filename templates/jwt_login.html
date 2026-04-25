@@ -71,7 +71,7 @@ Sig:     HMAC-SHA256(header.payload, secret)</div>
 
       {% set attacks = [
         ("None Algorithm", "Change alg to 'none', drop signature. Some libs skip verification entirely."),
-        ("Weak Secret", "hashcat -a 0 -m 16500 token.txt rockyou.txt — cracks 'weak', 'secret', 'password' in seconds."),
+        ("Weak Secret", "hashcat -a 0 -m 16500 token.txt rockyou.txt — cracks 'weak', 'secret', 'password' in seconds. run hashcat -a 0 -m 16500 token.txt rockyou.txt --show to get the password"),
         ("RS256 → HS256", "Server uses RSA public key for RS256. Switch to HS256, sign with public key as HMAC secret."),
         ("kid Injection", "{\"kid\": \"../../dev/null\"} — server reads /dev/null as key = empty string = trivial forgery."),
       ] %}
