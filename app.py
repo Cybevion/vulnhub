@@ -326,9 +326,14 @@ def idor_profile():
     conn = get_db()
     if safe:
         # enforce: you can only see your own profile
-        if int(target_id) != session["user_id"]:
+        try:
+            target_id_int = int(target_id)
+        except (TypeError, ValueError):
             conn.close()
-            return render_template("idor_profile.html", safe=safe, error="Access Denied: You can only view your own profile.", profile=None, own_id=session["user_id"])
+            return render_template("idor_profile.html", safe=safe, error="Invalid profile ID.", profile=None, own_id=session["user_id"], target_id=target_id)
+        if target_id_int != session["user_id"]:
+            conn.close()
+            return render_template("idor_profile.html", safe=safe, error="Access Denied: You can only view your own profile.", profile=None, own_id=session["user_id"], target_id=target_id)
         row = conn.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
     else:
         # VULNERABLE: uses user-supplied id, no ownership check
@@ -793,3 +798,19 @@ def pres_set_state():
     if "module" in data:
         _presentation_state["module"] = int(data["module"])
     return jsonify(_presentation_state)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HEALTH CHECK
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/health")
+def health():
+    try:
+        conn = get_db()
+        conn.execute("SELECT 1").fetchone()
+        conn.close()
+        db_ok = True
+    except Exception:
+        db_ok = False
+    status = "ok" if db_ok else "degraded"
+    return jsonify({"status": status, "db": db_ok}), 200 if db_ok else 503
