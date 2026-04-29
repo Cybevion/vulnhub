@@ -1,6 +1,6 @@
 # VulnLab — Web Application Security Demo Platform
 
-**Built by Yuvraj Todankar | Cybevion | University Cybersecurity Program**
+**Built by Yuvraj Todankar | Cybevion**
 
 An intentionally vulnerable web application for teaching web security concepts.  
 Every module has a **Vulnerable mode** and a **Safe/Patched mode** side by side.

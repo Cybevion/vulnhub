@@ -1,13 +1,3 @@
-"""
-VulnLab — Web Application Security Demo Platform
-Built by Yuvraj Todankar | Cybevion
-University Cybersecurity Program
-
-Each route has two modes:
-  ?safe=0  → vulnerable (default)
-  ?safe=1  → patched — shows the fix in action
-"""
-
 from flask import Flask, request, render_template, redirect, url_for, session, jsonify, make_response
 import sqlite3, os, hashlib, hmac, base64, json, time, re, uuid, html
 from functools import wraps
