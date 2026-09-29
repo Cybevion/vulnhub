@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, redirect, url_for, session, jsonify, make_response
-import sqlite3, os, hashlib, hmac, base64, json, time, re, uuid, html
+import sqlite3, os, hashlib, hmac, base64, json, time, re, uuid, html, subprocess
 from functools import wraps
 from datetime import datetime
 from modules import MODULES, MODULES_BY_ID
@@ -157,6 +157,7 @@ ENDPOINT_TO_MODULE = {
     "ssti": "ssti",
     "security_headers": "headers",
     "logic_checkout": "logic",
+    "cmdi": "cmdi",
 }
 
 @app.context_processor
@@ -780,6 +781,46 @@ def logic_checkout():
             message = f"Order placed: {item['name']} x{quantity} = ${total:.2f} [Client-supplied price used — VULNERABLE!]"
 
     return render_template("logic_checkout.html", safe=safe, items=items, message=message, error=error)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 15. OS COMMAND INJECTION
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/cmdi", methods=["GET", "POST"])
+def cmdi():
+    safe = safe_mode()
+    host = request.values.get("host", "")
+    output = None
+    error = None
+    cmd_shown = None
+
+    if host:
+        if safe:
+            # validate: hostnames / IPs only — reject shell metacharacters,
+            # then run WITHOUT a shell so input can never be interpreted as code
+            if not re.fullmatch(r"[A-Za-z0-9.\-]{1,100}", host):
+                error = "Blocked: only letters, digits, dots and hyphens allowed (no shell metacharacters)."
+            else:
+                cmd_shown = f"subprocess.run(['ping', '-c', '1', {host!r}], shell=False)"
+                try:
+                    proc = subprocess.run(
+                        ["ping", "-c", "1", "-W", "1", host],
+                        capture_output=True, text=True, timeout=5
+                    )
+                    output = proc.stdout + proc.stderr
+                except Exception as e:
+                    error = str(e)
+        else:
+            # VULNERABLE: user input concatenated into a shell string
+            cmd = f"ping -c 1 -W 1 {host}"
+            cmd_shown = cmd
+            try:
+                output = os.popen(cmd).read()
+            except Exception as e:
+                error = str(e)
+
+    return render_template("cmdi.html", safe=safe, host=host,
+                           output=output, error=error, cmd_shown=cmd_shown)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH

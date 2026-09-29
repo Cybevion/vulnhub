@@ -358,6 +358,34 @@ MODULES = [
         "vuln_code": "client_price = float(request.form.get(\"price\", 0))\nquantity = int(request.form.get(\"quantity\", 1))\n# Trusts client price — attacker sets it to 0.01\ntotal = client_price * quantity\nplace_order(item_id, total)",
         "safe_code": "item_id = int(request.form.get(\"item_id\"))\nquantity = int(request.form.get(\"quantity\", 1))\n# Look up REAL price server-side — ignore client value\nitem = db.get_item_by_id(item_id)\ntotal = item.server_price * quantity\nplace_order(item_id, total)",
     },
+    {
+        "id": "cmdi",
+        "title": "Command Injection",
+        "owasp": "A03:2021 · Injection",
+        "sev": "CRITICAL",
+        "tagline": "User input concatenated into a shell command. Add ';' or '|' and the server runs your commands.",
+        "demoUrl": "/cmdi",
+        "what": "OS command injection happens when user input is passed into a system shell without sanitisation. Shell metacharacters (; | & $() `) let the attacker chain their own commands onto the intended one — the server executes them with the web server's privileges.",
+        "how": [
+            {"n": "1", "text": "App runs a shell command with user input: ", "code": "os.popen('ping -c 1 ' + host)"},
+            {"n": "2", "text": "Normal input: ", "code": "8.8.8.8  →  pings the host"},
+            {"n": "3", "text": "Attacker appends a command: ", "code": "8.8.8.8; id"},
+            {"n": "4", "text": "Shell runs both: ", "code": "ping -c 1 8.8.8.8 ; id"},
+            {"n": "5", "text": "Output includes: ", "code": "uid=33(www-data)  →  arbitrary command execution"},
+        ],
+        "impact": {
+            "title": "Real-World Case — Equifax (2017)",
+            "text": "A command-injection-class flaw (Apache Struts CVE-2017-5638) let attackers run OS commands on Equifax servers. <strong>147 million people's</strong> data — SSNs, birth dates, addresses — exfiltrated over 76 days. ~$1.4 billion in cleanup costs. One unsanitised input reaching a command interpreter.",
+        },
+        "payloads": [
+            {"code": "127.0.0.1; id", "desc": "Chain a command with ';' — runs after the ping"},
+            {"code": "127.0.0.1 | whoami", "desc": "Pipe output — runs 'whoami' regardless of ping"},
+            {"code": "127.0.0.1 && cat /etc/passwd", "desc": "Run only if ping succeeds — read password file"},
+            {"code": "$(uname -a)", "desc": "Command substitution — inject the shell result"},
+        ],
+        "vuln_code": "host = request.values.get(\"host\")\n# User input concatenated straight into a shell string\ncmd = f\"ping -c 1 {host}\"\noutput = os.popen(cmd).read()   # ← shell runs ANY chained command",
+        "safe_code": "host = request.values.get(\"host\")\n# 1) validate: hostnames/IPs only, no shell metacharacters\nif not re.fullmatch(r\"[A-Za-z0-9.\\-]{1,100}\", host):\n    abort(400)\n# 2) no shell — pass args as a list so input is data, not code\nsubprocess.run([\"ping\", \"-c\", \"1\", host], shell=False)",
+    },
 ]
 
 # Convenience index by id, for routes that need a single module's metadata.
