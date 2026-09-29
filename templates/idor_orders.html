@@ -3,11 +3,6 @@
 {% block content %}
 <h1 class="page-title">IDOR — Orders</h1>
 <p class="page-subtitle">A01:2021 · Change user_id parameter to view other users' purchase history</p>
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}Ownership enforced — only your orders returned.{% else %}Any user_id accepted — full order history of any account exposed.{% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
-</div>
 <div class="split">
   <div>
     <div class="card">

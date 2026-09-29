@@ -605,11 +605,36 @@ MODULE_GUIDANCE = {
     },
 }
 
+# Per-mode, per-module one-liners describing what vulnerable/safe mode does.
+# Shown in the single sticky mode banner (base.html).
+MODULE_MODES = {
+    "sqli-auth":     {"vuln": "String concatenation — input lands directly in the SQL query.", "safe": "Parameterised queries — user input is never concatenated into SQL."},
+    "sqli-union":    {"vuln": "Raw string concatenation — a UNION payload executes against the DB.", "safe": "Parameterised query — UNION injection is not possible."},
+    "xss-reflected": {"vuln": "Raw output — script tags execute in your browser.", "safe": "Output encoded with html.escape() — script tags rendered as text."},
+    "xss-stored":    {"vuln": "Raw comment stored and rendered — script executes for every visitor.", "safe": "Comment body encoded before storage — tags rendered as text."},
+    "idor":          {"vuln": "Server fetches whatever ID you request — no ownership check.", "safe": "Requested ID must match your session — any other ID returns 403."},
+    "csrf":          {"vuln": "No CSRF token — any site can trigger a transfer on your behalf.", "safe": "CSRF token required — cross-site form submissions rejected."},
+    "fileupload":    {"vuln": "No validation — any file accepted, saved with its original name, served as executable.", "safe": "Extension whitelist + magic-byte check + UUID rename applied."},
+    "ssrf":          {"vuln": "Any URL accepted — including 169.254.169.254 (cloud metadata).", "safe": "Host resolved and internal/reserved IP ranges rejected."},
+    "jwt":           {"vuln": "Accepts alg:none (no signature); secret is 'weak' — crackable with hashcat.", "safe": "Strong secret + enforced HS256 + signature (and expiry) verified."},
+    "ssti":          {"vuln": "Input passed directly to render_template_string() — Jinja2 executes it.", "safe": "Input escaped before output — template syntax treated as plain text."},
+    "headers":       {"vuln": "No security headers — inspect the response in Burp or DevTools.", "safe": "All recommended security headers present in the response."},
+    "logic":         {"vuln": "Server trusts the price field from the form — change it to anything.", "safe": "Server uses its own price database — client-supplied price ignored."},
+    "cmdi":          {"vuln": "Input concatenated into a shell string — ; | && $() all run commands.", "safe": "Input validated (host chars only) and run without a shell."},
+    "deserialize":   {"vuln": "Loaded with pickle.loads — a crafted pickle runs code on load.", "safe": "Loaded with json.loads — data only, no code execution."},
+    "bruteforce":    {"vuln": "No throttling — guess as many times as you like, as fast as you like.", "safe": "Failures counted per IP — a few strikes triggers a lockout."},
+    "xxe":           {"vuln": "Parser loads DTDs and resolves external entities — &xxe; expands to file contents.", "safe": "DTDs rejected and entities never resolved."},
+}
+
 for _m in MODULES:
     _g = MODULE_GUIDANCE.get(_m["id"])
     if _g:
         _m["objective"] = _g["objective"]
         _m["hints"] = _g["hints"]
+    _mode = MODULE_MODES.get(_m["id"])
+    if _mode:
+        _m["mode_vuln"] = _mode["vuln"]
+        _m["mode_safe"] = _mode["safe"]
 
 # Convenience index by id, for routes that need a single module's metadata.
 MODULES_BY_ID = {m["id"]: m for m in MODULES}

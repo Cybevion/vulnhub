@@ -5,12 +5,6 @@
 <h1 class="page-title">XSS — Reflected</h1>
 <p class="page-subtitle">A03:2021 · User input reflected in the response without HTML encoding</p>
 
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}Output encoded with html.escape() — script tags rendered as text.
-  {% else %}Raw output — script tags execute in your browser.{% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
-</div>
 
 <div class="split">
   <div>

@@ -5,12 +5,6 @@
 <h1 class="page-title">Insecure Deserialization</h1>
 <p class="page-subtitle">A08:2021 · Unpickling attacker-controlled data → code executes on load</p>
 
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}Preferences loaded with <code>json.loads</code> — data only, no code execution.
-  {% else %}Preferences loaded with <code>pickle.loads</code> — a crafted pickle runs code on load.{% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
-</div>
 
 <div class="split">
   <div>

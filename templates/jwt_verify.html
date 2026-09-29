@@ -3,11 +3,6 @@
 {% block content %}
 <h1 class="page-title">JWT — Verify Token</h1>
 <p class="page-subtitle">Paste any JWT here — in vulnerable mode, alg:none tokens are accepted without verification</p>
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}Algorithm enforced as HS256. Signature cryptographically verified.{% else %}alg:none accepted — any payload accepted without valid signature.{% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
-</div>
 <div class="card">
   <form method="GET" action="/jwt/verify">
     <input type="hidden" name="safe" value="{{ '1' if safe else '0' }}">

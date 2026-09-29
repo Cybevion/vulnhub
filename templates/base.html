@@ -462,12 +462,14 @@ nav {
 
 {% if current_module_id %}
 <div class="mode-switch">
-  <span class="ms-label">Mode</span>
-  <span class="ms-track" onclick="toggleSafe()">
+  <span class="ms-track" onclick="toggleSafe()" title="Toggle vulnerable / safe mode">
     <span class="ms-opt {{ 'on-vuln' if not is_safe else '' }}">VULNERABLE</span>
     <span class="ms-opt {{ 'on-safe' if is_safe else '' }}">SAFE</span>
   </span>
-  <span class="ms-state {{ 'safe' if is_safe else 'vuln' }}">{% if is_safe %}🛡 patched — the fix is active{% else %}⚠ exploitable — the vulnerability is live{% endif %}</span>
+  <span class="ms-state {{ 'safe' if is_safe else 'vuln' }}">{% if is_safe %}🛡{% else %}⚠{% endif %}</span>
+  <span class="ms-desc" style="font-size:12px;color:var(--light);">
+    {% if module and module.mode_vuln %}{{ module.mode_safe if is_safe else module.mode_vuln }}{% else %}{{ 'The fix is active.' if is_safe else 'The vulnerability is live.' }}{% endif %}
+  </span>
 </div>
 {% endif %}
 

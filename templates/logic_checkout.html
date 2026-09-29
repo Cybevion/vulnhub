@@ -4,12 +4,6 @@
 <h1 class="page-title">Business Logic — Price Tampering</h1>
 <p class="page-subtitle">A04:2021 · App trusts client-supplied price — intercept in Burp and change it to 0.01</p>
 
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}Server uses its own price database — client-supplied price value is ignored.
-  {% else %}Server trusts the price field submitted in the form — change it to anything.{% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
-</div>
 
 <div class="split">
   <div>

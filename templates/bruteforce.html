@@ -5,12 +5,6 @@
 <h1 class="page-title">Brute Force — No Rate Limiting</h1>
 <p class="page-subtitle">A07:2021 · Unlimited login attempts let a wordlist crack weak passwords</p>
 
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}Failures are counted per IP — {{ max_attempts }} strikes triggers a lockout.
-  {% else %}No throttling — guess as many times as you like, as fast as you like.{% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
-</div>
 
 <div class="split">
   <div>

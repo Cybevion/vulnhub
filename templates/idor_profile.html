@@ -5,12 +5,6 @@
 <h1 class="page-title">IDOR — Insecure Direct Object Reference</h1>
 <p class="page-subtitle">A01:2021 · Change the ?id= parameter to access any user's data</p>
 
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}Server checks: requested ID must match your session. Any other ID returns 403.
-  {% else %}Server fetches whatever ID you request — no ownership check.{% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
-</div>
 
 <div class="split">
   <div>

@@ -4,11 +4,6 @@
 <h1 class="page-title">CSRF — Cross-Site Request Forgery</h1>
 <p class="page-subtitle">A01:2021 · Your browser auto-sends cookies — an attacker's page can trigger authenticated actions</p>
 
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}CSRF token required — cross-site form submissions rejected.{% else %}No CSRF token — any site can trigger a transfer on your behalf.{% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
-</div>
 
 <div class="split">
   <div>

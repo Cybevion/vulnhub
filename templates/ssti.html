@@ -3,11 +3,6 @@
 {% block content %}
 <h1 class="page-title">SSTI — Server-Side Template Injection</h1>
 <p class="page-subtitle">A03:2021 · User input rendered as Jinja2 template → config leak → RCE</p>
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}Input escaped before output — template syntax treated as plain text.{% else %}Input passed directly to render_template_string() — Jinja2 executes it.{% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
-</div>
 <div class="split">
   <div>
     <div class="card">

@@ -5,17 +5,6 @@
 <h1 class="page-title">SQL Injection — Auth Bypass</h1>
 <p class="page-subtitle">A03:2021 · String concatenation lets attackers manipulate the query logic</p>
 
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}
-    Using parameterised queries — user input is never concatenated into SQL.
-  {% else %}
-    Using string concatenation — input lands directly in the SQL query.
-  {% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">
-    Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode
-  </button>
-</div>
 
 <div class="split">
   <div>
