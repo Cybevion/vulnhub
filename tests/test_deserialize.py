@@ -6,10 +6,11 @@ import subprocess
 
 
 def _malicious_pickle():
-    """A pickle whose __reduce__ returns the output of `id` when loaded."""
+    """A pickle whose __reduce__ returns the output of `uname` when loaded.
+    'Linux' proves real execution and (unlike 'uid=') appears in no static text."""
     class RCE:
         def __reduce__(self):
-            return (subprocess.check_output, (["id"],))
+            return (subprocess.check_output, (["uname"],))
     return base64.b64encode(pickle.dumps(RCE())).decode()
 
 
@@ -25,7 +26,7 @@ class TestInsecureDeserialization:
     def test_vulnerable_pickle_executes_code(self, client):
         r = client.post("/deserialize?safe=0", data={"blob": _malicious_pickle()})
         assert r.status_code == 200
-        assert b"uid=" in r.data  # code ran during pickle.loads
+        assert b"Linux" in r.data  # code ran during pickle.loads
 
     def test_vulnerable_loads_legit_pickle(self, client):
         r = client.post("/deserialize?safe=0", data={"blob": _legit_pickle()})
@@ -35,7 +36,7 @@ class TestInsecureDeserialization:
         # a pickle blob is not valid JSON -> safe mode rejects it, no execution
         r = client.post("/deserialize?safe=1", data={"blob": _malicious_pickle()})
         assert r.status_code == 200
-        assert b"uid=" not in r.data
+        assert b"Linux" not in r.data
         assert b"refuses to unpickle" in r.data or b"Not valid JSON" in r.data
 
     def test_safe_mode_accepts_json(self, client):

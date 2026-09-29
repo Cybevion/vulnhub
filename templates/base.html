@@ -349,9 +349,25 @@ nav {
 /* ── SPLIT PANE ── */
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 
+/* ── RIGHT SIDEBAR (module reference: how-it-works + request inspector) ── */
+.layout.has-right { grid-template-columns: 220px minmax(0, 1fr) 340px; }
+.rightbar { background: var(--bg2); border-left: 1px solid var(--border); padding: 1.25rem 1rem; overflow-y: auto; }
+.rightbar .rb-card { margin-bottom: 1.5rem; }
+.rightbar .rb-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.7rem; }
+.rightbar .rb-title { font-size: 11px; font-weight: 700; color: var(--light); text-transform: uppercase; letter-spacing: 1px; }
+.rightbar .rb-toggle { font-size: 11px; padding: 0.15rem 0.55rem; border: 1px solid var(--border); background: #010409; color: var(--gray); border-radius: 4px; cursor: pointer; font-family: var(--font-mono); }
+.rightbar .rb-toggle:hover { color: var(--green); border-color: var(--green2); }
+.flowstep { display: flex; gap: 0.5rem; margin-bottom: 0.65rem; font-size: 11.5px; line-height: 1.45; }
+.flowstep .fs-n { flex: none; width: 18px; height: 18px; border-radius: 50%; background: var(--panel); color: var(--green); font-weight: 700; font-size: 10px; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.flowstep .fs-code { display: block; margin-top: 4px; color: var(--red); background: #010409; border: 1px solid var(--border); border-radius: 3px; padding: 2px 6px; word-break: break-all; }
+
 /* ── RESP ── */
+@media (max-width: 1024px) {
+  .layout.has-right { grid-template-columns: 220px 1fr; }
+  .rightbar { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--border); }
+}
 @media (max-width: 768px) {
-  .layout { grid-template-columns: 1fr; }
+  .layout, .layout.has-right { grid-template-columns: 1fr; }
   .sidebar { display: none; }
   .split, .grid-2 { grid-template-columns: 1fr; }
 }
@@ -480,7 +496,7 @@ nav {
 </div>
 {% endif %}
 
-<div class="layout">
+<div class="layout{% if current_module_id %} has-right{% endif %}">
   <aside class="sidebar">
     <div class="sidebar-section">Injection</div>
     <a href="/sqli/login">⚡ SQLi — Auth Bypass <span class="vuln-tag tag-critical">A03</span></a>
@@ -536,11 +552,30 @@ nav {
     {% endif %}
 
     {% block content %}{% endblock %}
+  </main>
 
-    {% if current_module_id and (request.method == 'POST' or request.query_string) %}
-    <div class="card" style="margin-top:1.25rem;">
-      <div class="card-header"><span>🌐</span><span class="card-title">Request Inspector</span></div>
-      <div style="font-size:11px;color:var(--gray);margin-bottom:0.6rem;">The exact request the browser just sent — the raw traffic behind this page.</div>
+  {% if current_module_id %}
+  <aside class="rightbar">
+    {% if module and module.how %}
+    <div class="rb-card">
+      <div class="rb-head">
+        <span class="rb-title">🧠 How it works</span>
+        <button class="rb-toggle" onclick="toggleHow()" id="how-toggle">Hide</button>
+      </div>
+      <div id="how-body">
+        {% for step in module.how %}
+        <div class="flowstep">
+          <span class="fs-n">{{ step.n }}</span>
+          <span>{{ step.text }}{% if step.code %}<code class="fs-code">{{ step.code | e }}</code>{% endif %}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="rb-card">
+      <div class="rb-head"><span class="rb-title">🌐 Request Inspector</span></div>
+      {% if request.method == 'POST' or request.query_string %}
       <div class="reqview">
         <div class="rv-tag">HTTP</div>
         <div class="rv-req">{{ request.method }} {{ request.full_path if request.query_string else request.path }} HTTP/1.1
@@ -554,9 +589,12 @@ Content-Type: application/x-www-form-urlencoded
   --data-urlencode '{{ k }}={{ v }}'{% endfor %}{% endif %}{% if request.cookies %} \
   -b '{% for k, v in request.cookies.items() %}{{ k }}={{ v }}{% if not loop.last %}; {% endif %}{% endfor %}'{% endif %}</div>
       </div>
+      {% else %}
+      <div style="font-size:11px;color:var(--gray);">Submit a request (search, form, or payload) and the exact HTTP traffic — plus an equivalent <code>curl</code> — appears here.</div>
+      {% endif %}
     </div>
-    {% endif %}
-  </main>
+  </aside>
+  {% endif %}
 </div>
 
 <script>
@@ -586,6 +624,15 @@ function togglePresent() {
   try { localStorage.setItem('vulnlab_present', on ? '1' : '0'); } catch (e) {}
 }
 try { if (localStorage.getItem('vulnlab_present') === '1') applyPresent(true); } catch (e) {}
+
+// ── "How it works" collapse toggle ──
+function toggleHow() {
+  const body = document.getElementById('how-body');
+  const btn = document.getElementById('how-toggle');
+  if (!body) return;
+  const hidden = body.hidden = !body.hidden;
+  if (btn) btn.textContent = hidden ? 'Show' : 'Hide';
+}
 
 // ── Progressive hints ──
 let _hintIdx = 0;

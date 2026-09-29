@@ -7,19 +7,21 @@ being echoed back into the form field.
 
 
 class TestCommandInjection:
+    # `uname` prints "Linux" — a marker that appears only from real execution,
+    # never in the page's static/reference text (unlike `id`'s "uid=").
     def test_vulnerable_executes_chained_command(self, client):
-        r = client.get("/cmdi", query_string={"host": "127.0.0.1; id", "safe": "0"})
+        r = client.get("/cmdi", query_string={"host": "127.0.0.1; uname", "safe": "0"})
         assert r.status_code == 200
-        assert b"uid=" in r.data  # the injected `id` actually ran
+        assert b"Linux" in r.data  # the injected `uname` actually ran
 
     def test_vulnerable_pipe_runs_command(self, client):
-        r = client.get("/cmdi", query_string={"host": "127.0.0.1 | id", "safe": "0"})
-        assert b"uid=" in r.data
+        r = client.get("/cmdi", query_string={"host": "127.0.0.1 | uname", "safe": "0"})
+        assert b"Linux" in r.data
 
     def test_safe_mode_blocks_metacharacters(self, client):
-        r = client.get("/cmdi", query_string={"host": "127.0.0.1; id", "safe": "1"})
+        r = client.get("/cmdi", query_string={"host": "127.0.0.1; uname", "safe": "1"})
         assert r.status_code == 200
-        assert b"uid=" not in r.data   # injection did NOT execute
+        assert b"Linux" not in r.data   # injection did NOT execute
         assert b"Blocked" in r.data
 
     def test_safe_mode_allows_valid_host(self, client):
