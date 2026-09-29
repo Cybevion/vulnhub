@@ -51,11 +51,7 @@
 
     <div class="card">
       <div class="card-header"><span>🛠️</span><span class="card-title">Vulnerable vs Safe Code</span></div>
-      <div class="code-block" style="font-size:11px;">❌ VULNERABLE:
-{{ module.vuln_code }}
-
-✅ SAFE:
-{{ module.safe_code }}</div>
+      <div style="font-size:12px;color:var(--gray);padding:0.4rem 0;">→ Use <strong style="color:var(--blue);">🔑 Show the fix (diff)</strong> at the top of the page for a line-by-line before/after.</div>
       <div class="alert alert-info" style="margin-top:1rem;"><strong>Fix:</strong> Rate-limit by IP and by account, lock out after a few failures with exponential backoff, add CAPTCHA on repeated failures, and prefer MFA. Log and alert on spikes.</div>
     </div>
   </div>

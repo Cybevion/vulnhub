@@ -368,6 +368,60 @@ nav {
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
+/* ── Sticky safe/vulnerable mode switch (persistent on every module page) ── */
+.mode-switch {
+  position: sticky; top: 56px; z-index: 90;
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.5rem 2rem;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+.mode-switch .ms-label { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; }
+.mode-switch .ms-track {
+  display: inline-flex; border: 1px solid var(--border); border-radius: 20px; overflow: hidden; cursor: pointer;
+}
+.mode-switch .ms-opt { padding: 0.3rem 0.9rem; font-size: 12px; font-weight: 700; color: var(--gray); background: transparent; border: none; cursor: pointer; font-family: var(--font-mono); }
+.mode-switch .ms-opt.on-vuln { background: rgba(255,71,87,0.18); color: var(--red); }
+.mode-switch .ms-opt.on-safe { background: rgba(57,211,83,0.18); color: var(--green); }
+.mode-switch .ms-state { font-size: 12px; font-weight: 700; margin-left: auto; }
+.mode-switch .ms-state.vuln { color: var(--red); }
+.mode-switch .ms-state.safe { color: var(--green); }
+
+/* ── Guided-exercise strip (objective + hints + solution) ── */
+.mod-guide { background: #161b22; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; }
+.mod-guide .mg-obj { font-size: 13px; }
+.mod-guide .mg-obj strong { color: var(--cyan); }
+.mod-guide .mg-actions { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; }
+.mod-guide .mg-btn { font-size: 11px; padding: 0.25rem 0.7rem; border: 1px solid var(--border); background: #010409; color: var(--light); border-radius: 4px; cursor: pointer; font-family: var(--font-mono); }
+.mod-guide .mg-btn:hover { border-color: var(--blue); color: var(--blue); }
+.mod-guide .hint { margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: #010409; border-left: 2px solid var(--yellow); border-radius: 4px; font-size: 12px; color: var(--light); }
+.mod-guide .hint b { color: var(--yellow); }
+
+/* ── Line-level code diff ── */
+.diffpanel { font-family: var(--font-mono); font-size: 11.5px; background: #010409; border: 1px solid var(--border); border-radius: 6px; overflow-x: auto; }
+.diffpanel .dl { display: block; padding: 0 10px; white-space: pre; }
+.diffpanel .dl-add { background: rgba(57,211,83,0.12); color: var(--green); }
+.diffpanel .dl-del { background: rgba(255,71,87,0.12); color: var(--red); }
+.diffpanel .dl-ctx { color: var(--gray); }
+.diffpanel .dl-add::before { content: "+ "; opacity: 0.6; }
+.diffpanel .dl-del::before { content: "- "; opacity: 0.6; }
+.diffpanel .dl-ctx::before { content: "  "; }
+
+/* ── Request / response viewer ── */
+.reqview { font-family: var(--font-mono); font-size: 11px; }
+.reqview .rv-req { background: #010409; border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem 0.8rem; white-space: pre-wrap; word-break: break-all; color: var(--light); }
+.reqview .rv-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 3px; background: var(--panel); color: var(--cyan); margin-bottom: 0.4rem; }
+
+/* ── Present mode (classroom / projector): bigger, higher contrast, no scanline ── */
+:root[data-present="1"] body { font-size: 16px; }
+:root[data-present="1"] body::before { display: none; }
+:root[data-present="1"] .page-subtitle { font-size: 14px; color: var(--light); }
+:root[data-present="1"] .code-block,
+:root[data-present="1"] .diffpanel,
+:root[data-present="1"] code { font-size: 14px !important; }
+:root[data-present="1"] .form-label,
+:root[data-present="1"] .card-title { font-size: 14px; }
+:root[data-present="1"] { --gray: #a9b4c0; }  /* lift low-contrast grays */
+
 </style>
 {% block extra_head %}{% endblock %}
 </head>
@@ -396,6 +450,7 @@ nav {
     <a href="/api/users">API</a>
   </div>
   <div class="nav-right">
+    <button onclick="togglePresent()" id="present-btn" class="btn" title="Toggle projector-friendly display" style="padding:0.3rem 0.7rem;font-size:11px;border:1px solid var(--border);background:transparent;color:var(--gray);cursor:pointer;">🖥 Present</button>
     {% if current_user %}
       <span class="nav-user">logged in as <strong>{{ current_user.username }}</strong></span>
       <a href="/logout" class="btn btn-red" style="padding:0.3rem 0.8rem;font-size:11px;">logout</a>
@@ -404,6 +459,17 @@ nav {
     {% endif %}
   </div>
 </nav>
+
+{% if current_module_id %}
+<div class="mode-switch">
+  <span class="ms-label">Mode</span>
+  <span class="ms-track" onclick="toggleSafe()">
+    <span class="ms-opt {{ 'on-vuln' if not is_safe else '' }}">VULNERABLE</span>
+    <span class="ms-opt {{ 'on-safe' if is_safe else '' }}">SAFE</span>
+  </span>
+  <span class="ms-state {{ 'safe' if is_safe else 'vuln' }}">{% if is_safe %}🛡 patched — the fix is active{% else %}⚠ exploitable — the vulnerability is live{% endif %}</span>
+</div>
+{% endif %}
 
 {% if current_user %}
 <div class="lab-banner" style="background:rgba(30,144,255,0.08);border-bottom:1px solid var(--border);border-left:3px solid var(--blue);color:var(--light);font-size:12px;line-height:1.5;padding:0.5rem 2rem;display:flex;align-items:flex-start;gap:0.6rem;">
@@ -446,7 +512,48 @@ nav {
   </aside>
 
   <main class="content">
+    {% if module and module.objective %}
+    <div class="mod-guide">
+      <div class="mg-obj">🎯 <strong>Objective:</strong> {{ module.objective }}</div>
+      <div class="mg-actions">
+        {% if module.hints %}<button class="mg-btn" onclick="nextHint()" id="hint-btn">💡 Show a hint</button>{% endif %}
+        {% if module.vuln_code and module.safe_code %}<button class="mg-btn" onclick="toggleSolution()" id="sol-btn">🔑 Show the fix (diff)</button>{% endif %}
+      </div>
+      <div id="hint-box"></div>
+      {% if module.hints %}
+      <script type="application/json" id="hints-data">{{ module.hints | tojson }}</script>
+      {% endif %}
+      <div id="solution-box" hidden style="margin-top:0.75rem;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.35rem;">The fix — red is removed, green is added:</div>
+        <div class="diffpanel" id="diff-panel"></div>
+      </div>
+      {% if module.vuln_code and module.safe_code %}
+      <script type="application/json" id="code-data">{{ {'vuln': module.vuln_code, 'safe': module.safe_code} | tojson }}</script>
+      {% endif %}
+    </div>
+    {% endif %}
+
     {% block content %}{% endblock %}
+
+    {% if current_module_id and (request.method == 'POST' or request.query_string) %}
+    <div class="card" style="margin-top:1.25rem;">
+      <div class="card-header"><span>🌐</span><span class="card-title">Request Inspector</span></div>
+      <div style="font-size:11px;color:var(--gray);margin-bottom:0.6rem;">The exact request the browser just sent — the raw traffic behind this page.</div>
+      <div class="reqview">
+        <div class="rv-tag">HTTP</div>
+        <div class="rv-req">{{ request.method }} {{ request.full_path if request.query_string else request.path }} HTTP/1.1
+Host: {{ request.host }}
+Cookie: {{ request.headers.get('Cookie', '(none)') }}{% if request.method == 'POST' and request.form %}
+Content-Type: application/x-www-form-urlencoded
+
+{% for k, v in request.form.items() %}{{ k }}={{ v }}{% if not loop.last %}&{% endif %}{% endfor %}{% endif %}</div>
+        <div class="rv-tag" style="margin-top:0.6rem;">CURL</div>
+        <div class="rv-req">curl {% if request.method == 'POST' %}-X POST {% endif %}'{{ request.host_url.rstrip('/') }}{{ request.full_path if request.query_string else request.path }}'{% if request.method == 'POST' and request.form %}{% for k, v in request.form.items() %} \
+  --data-urlencode '{{ k }}={{ v }}'{% endfor %}{% endif %}{% if request.cookies %} \
+  -b '{% for k, v in request.cookies.items() %}{{ k }}={{ v }}{% if not loop.last %}; {% endif %}{% endfor %}'{% endif %}</div>
+      </div>
+    </div>
+    {% endif %}
   </main>
 </div>
 
@@ -463,6 +570,76 @@ function toggleSafe() {
   const current = url.searchParams.get('safe') === '1';
   url.searchParams.set('safe', current ? '0' : '1');
   window.location.href = url.toString();
+}
+
+// ── Present mode (projector-friendly), remembered per browser ──
+function applyPresent(on) {
+  document.documentElement.setAttribute('data-present', on ? '1' : '0');
+  const btn = document.getElementById('present-btn');
+  if (btn) { btn.style.color = on ? 'var(--green)' : 'var(--gray)'; btn.style.borderColor = on ? 'var(--green)' : 'var(--border)'; }
+}
+function togglePresent() {
+  const on = document.documentElement.getAttribute('data-present') !== '1';
+  applyPresent(on);
+  try { localStorage.setItem('vulnlab_present', on ? '1' : '0'); } catch (e) {}
+}
+try { if (localStorage.getItem('vulnlab_present') === '1') applyPresent(true); } catch (e) {}
+
+// ── Progressive hints ──
+let _hintIdx = 0;
+function nextHint() {
+  const el = document.getElementById('hints-data');
+  if (!el) return;
+  const hints = JSON.parse(el.textContent);
+  const box = document.getElementById('hint-box');
+  if (_hintIdx < hints.length) {
+    const d = document.createElement('div');
+    d.className = 'hint';
+    d.innerHTML = '<b>Hint ' + (_hintIdx + 1) + ':</b> ' + hints[_hintIdx];
+    box.appendChild(d);
+    _hintIdx++;
+  }
+  if (_hintIdx >= hints.length) {
+    const btn = document.getElementById('hint-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '💡 No more hints'; btn.style.opacity = 0.5; }
+  }
+}
+
+// ── Solution reveal with a real line-level diff ──
+function toggleSolution() {
+  const box = document.getElementById('solution-box');
+  if (!box) return;
+  box.hidden = !box.hidden;
+  const btn = document.getElementById('sol-btn');
+  if (btn) btn.textContent = box.hidden ? '🔑 Show the fix (diff)' : '🙈 Hide the fix';
+  if (!box.hidden) renderDiff();
+}
+function renderDiff() {
+  const data = document.getElementById('code-data');
+  const panel = document.getElementById('diff-panel');
+  if (!data || !panel || panel.dataset.done) return;
+  const { vuln, safe } = JSON.parse(data.textContent);
+  panel.innerHTML = lineDiff((vuln || '').split('\n'), (safe || '').split('\n'));
+  panel.dataset.done = '1';
+}
+// Minimal LCS-based line diff → red (removed) / green (added) / gray (unchanged)
+function lineDiff(a, b) {
+  const n = a.length, m = b.length;
+  const lcs = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = m - 1; j >= 0; j--)
+      lcs[i][j] = a[i] === b[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let out = '', i = 0, j = 0;
+  const row = (cls, s) => '<span class="dl ' + cls + '">' + (esc(s) || ' ') + '</span>';
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { out += row('dl-ctx', a[i]); i++; j++; }
+    else if (lcs[i + 1][j] >= lcs[i][j + 1]) { out += row('dl-del', a[i]); i++; }
+    else { out += row('dl-add', b[j]); j++; }
+  }
+  while (i < n) out += row('dl-del', a[i++]);
+  while (j < m) out += row('dl-add', b[j++]);
+  return out;
 }
 </script>
 

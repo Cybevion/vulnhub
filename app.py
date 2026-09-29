@@ -166,9 +166,14 @@ ENDPOINT_TO_MODULE = {
 
 @app.context_processor
 def inject_module():
-    # Makes the current page's registry entry available as `module`.
+    # Makes the current page's registry entry available as `module`, plus shared
+    # UI state (current mode, whether this is a module page).
     mod_id = ENDPOINT_TO_MODULE.get(request.endpoint)
-    return {"module": MODULES_BY_ID.get(mod_id)}
+    return {
+        "module": MODULES_BY_ID.get(mod_id),
+        "current_module_id": mod_id,
+        "is_safe": safe_mode(),
+    }
 
 def make_jwt(payload: dict, secret: str = "weak") -> str:
     header = base64.urlsafe_b64encode(json.dumps({"alg":"HS256","typ":"JWT"}).encode()).rstrip(b"=").decode()

@@ -472,5 +472,144 @@ MODULES = [
     },
 ]
 
+# Per-module guided-exercise content: a one-line objective and progressive hints.
+# Kept separate from the entries above for readability, then merged in below.
+MODULE_GUIDANCE = {
+    "sqli-auth": {
+        "objective": "Log in as admin without knowing the password.",
+        "hints": [
+            "The username is dropped straight into a SQL string — what if it contains a quote?",
+            "Close the quote and add an always-true condition, or comment out the rest with --.",
+            "Try username: ' OR 1=1--",
+        ],
+    },
+    "sqli-union": {
+        "objective": "Extract every user's password from the database.",
+        "hints": [
+            "Your search runs inside a LIKE query you can break out of with a quote.",
+            "UNION SELECT appends your own query — it must return the same 3 columns.",
+            "' UNION SELECT id, username, password FROM users--",
+        ],
+    },
+    "xss-reflected": {
+        "objective": "Run JavaScript in the browser straight from the URL.",
+        "hints": [
+            "Your search term is reflected into the page without encoding.",
+            "Inject an HTML element that executes script.",
+            "<script>alert(document.cookie)</script>",
+        ],
+    },
+    "xss-stored": {
+        "objective": "Plant a script that runs for every visitor to the comments.",
+        "hints": [
+            "The comment body is stored and rendered as raw HTML.",
+            "Post a comment containing a <script> tag.",
+            "It then fires on every page load — including when the admin views it.",
+        ],
+    },
+    "idor": {
+        "objective": "View another user's private profile and orders.",
+        "hints": [
+            "The id in the URL is trusted with no ownership check.",
+            "You're user #2 — change the id to someone else's.",
+            "/idor/profile?id=1 (admin)",
+        ],
+    },
+    "csrf": {
+        "objective": "Trigger a money transfer as the victim from an external page.",
+        "hints": [
+            "In vulnerable mode the transfer form has no anti-CSRF token.",
+            "Any website can auto-submit a form to this endpoint using the victim's cookie.",
+            "See the generated proof-of-concept HTML on the page.",
+        ],
+    },
+    "fileupload": {
+        "objective": "Upload a web shell and get the server to execute it.",
+        "hints": [
+            "Vulnerable mode keeps your original filename and extension.",
+            "Upload a .php file, then request it under /upload/serve/.",
+            "shell.php containing <?php system($_GET['cmd']); ?>",
+        ],
+    },
+    "ssrf": {
+        "objective": "Make the server fetch an internal cloud-metadata URL.",
+        "hints": [
+            "The server fetches any URL you hand it — from inside its own network.",
+            "Point it at the cloud metadata IP 169.254.169.254.",
+            "…/latest/meta-data/iam/security-credentials/ leaks credentials.",
+        ],
+    },
+    "jwt": {
+        "objective": "Forge an admin token the server will accept.",
+        "hints": [
+            "Vulnerable verification accepts alg:none — no signature required.",
+            "Set the header to alg:none, the payload role to admin, and drop the signature.",
+            "Alternatively, crack the weak HS256 secret offline.",
+        ],
+    },
+    "ssti": {
+        "objective": "Escalate from {{7*7}} to running a shell command.",
+        "hints": [
+            "Your name is rendered as a Jinja2 template — {{7*7}} → 49 confirms it.",
+            "{{config}} leaks the SECRET_KEY; the object graph leads to os.",
+            "{{lipsum.__globals__['os'].popen('id').read()}}",
+        ],
+    },
+    "headers": {
+        "objective": "Spot which protective HTTP headers are missing.",
+        "hints": [
+            "Compare the response headers between vulnerable and safe mode.",
+            "curl -I and look for CSP, X-Frame-Options, HSTS, X-Content-Type-Options.",
+            "Each missing header enables a whole class of attack.",
+        ],
+    },
+    "logic": {
+        "objective": "Buy an item for a price you choose.",
+        "hints": [
+            "The client sends the price; vulnerable mode trusts it.",
+            "Intercept the POST (or edit the form) and set price to 0.01.",
+            "Safe mode ignores the client price and looks it up server-side.",
+        ],
+    },
+    "cmdi": {
+        "objective": "Run an arbitrary OS command through the ping tool.",
+        "hints": [
+            "The host value is concatenated into a shell string.",
+            "Chain your own command with ; or |.",
+            "127.0.0.1; id",
+        ],
+    },
+    "deserialize": {
+        "objective": "Get code to execute just by loading a crafted blob.",
+        "hints": [
+            "Vulnerable mode unpickles your input directly.",
+            "A pickle's __reduce__ runs during loading — paste the malicious blob.",
+            "Safe mode uses JSON, which carries data only.",
+        ],
+    },
+    "bruteforce": {
+        "objective": "Find the password by guessing, without being blocked.",
+        "hints": [
+            "Vulnerable mode never locks out or throttles.",
+            "Try weak/common passwords — a wordlist would automate thousands.",
+            "admin / admin123",
+        ],
+    },
+    "xxe": {
+        "objective": "Read a local server file via a crafted XML document.",
+        "hints": [
+            "In vulnerable mode the parser resolves external entities.",
+            "Declare a SYSTEM entity pointing at file:///etc/passwd in a DTD.",
+            "Reference it with &xxe; in the document body.",
+        ],
+    },
+}
+
+for _m in MODULES:
+    _g = MODULE_GUIDANCE.get(_m["id"])
+    if _g:
+        _m["objective"] = _g["objective"]
+        _m["hints"] = _g["hints"]
+
 # Convenience index by id, for routes that need a single module's metadata.
 MODULES_BY_ID = {m["id"]: m for m in MODULES}
