@@ -47,17 +47,10 @@
   <div>
     <div class="card">
       <div class="card-header"><span>💡</span><span class="card-title">Payloads to Try</span></div>
-      {% set payloads = [
-        ("<script>alert(1)</script>", "Basic alert — confirms XSS"),
-        ("<script>alert(document.cookie)</script>", "Shows cookies in alert box"),
-        ("<img src=x onerror=alert(1)>", "No script tag — fires via img error"),
-        ("<svg onload=alert(document.domain)>", "SVG-based XSS"),
-        ("<ScRiPt>alert(1)</ScRiPt>", "Mixed case — bypasses naive filters"),
-      ] %}
-      {% for payload, desc in payloads %}
-      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:0.4rem;cursor:pointer;" onclick="document.querySelector('[name=q]').value='{{ payload | e }}'; document.querySelector('form').submit();">
-        <code style="font-size:11px;color:var(--red);">{{ payload | e }}</code>
-        <div style="font-size:10px;color:var(--gray);margin-top:3px;">{{ desc }}</div>
+      {% for p in module.payloads %}
+      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:0.4rem;cursor:pointer;" onclick="document.querySelector('[name=q]').value='{{ p.code | e }}'; document.querySelector('form').submit();">
+        <code style="font-size:11px;color:var(--red);">{{ p.code | e }}</code>
+        <div style="font-size:10px;color:var(--gray);margin-top:3px;">{{ p.desc }}</div>
       </div>
       {% endfor %}
 

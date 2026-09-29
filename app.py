@@ -139,6 +139,32 @@ def inject_current_user():
     # Makes `current_user` available to every template (nav + lab banner).
     return {"current_user": current_user()}
 
+# Maps a view function (request.endpoint) to its registry module id, so each
+# module page automatically receives its `module` metadata (payloads, code
+# diff) from modules.py instead of hardcoding it in the template.
+ENDPOINT_TO_MODULE = {
+    "sqli_login": "sqli-auth",
+    "sqli_search": "sqli-union",
+    "xss_reflected": "xss-reflected",
+    "xss_stored": "xss-stored",
+    "idor_profile": "idor",
+    "idor_orders": "idor",
+    "csrf_transfer": "csrf",
+    "file_upload": "fileupload",
+    "ssrf_fetch": "ssrf",
+    "jwt_login": "jwt",
+    "jwt_verify": "jwt",
+    "ssti": "ssti",
+    "security_headers": "headers",
+    "logic_checkout": "logic",
+}
+
+@app.context_processor
+def inject_module():
+    # Makes the current page's registry entry available as `module`.
+    mod_id = ENDPOINT_TO_MODULE.get(request.endpoint)
+    return {"module": MODULES_BY_ID.get(mod_id)}
+
 def make_jwt(payload: dict, secret: str = "weak") -> str:
     header = base64.urlsafe_b64encode(json.dumps({"alg":"HS256","typ":"JWT"}).encode()).rstrip(b"=").decode()
     body   = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b"=").decode()
