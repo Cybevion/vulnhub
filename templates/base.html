@@ -403,7 +403,9 @@ nav {
 .tut-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
 .tut-overlay[hidden] { display: none; }  /* the flex rule above would otherwise override the hidden attribute */
 .tut-modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; max-width: 640px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
-.tut-modal .tut-head { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+.tut-modal .tut-head { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); position: relative; }
+.tut-modal .tut-x { position: absolute; top: 0.9rem; right: 1rem; background: transparent; border: 1px solid var(--border); color: var(--gray); border-radius: 6px; width: 30px; height: 30px; font-size: 16px; line-height: 1; cursor: pointer; }
+.tut-modal .tut-x:hover { color: var(--red); border-color: var(--red); }
 .tut-modal .tut-head h2 { font-family: var(--font-head); font-size: 1.4rem; color: var(--green); }
 .tut-modal .tut-head p { font-size: 12px; color: var(--gray); margin-top: 0.25rem; }
 .tut-modal .tut-body { padding: 1.25rem 1.5rem; }
