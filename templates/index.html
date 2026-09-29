@@ -3,22 +3,47 @@
 {% block content %}
 
 <h1 class="page-title">VulnLab Dashboard</h1>
-<p class="page-subtitle">An intentionally vulnerable web app for teaching web security concepts. Every module has a vulnerable mode and a patched mode.</p>
+<p class="page-subtitle">An intentionally vulnerable web app for teaching web security. Every module has a <span style="color:var(--red);">vulnerable</span> mode and a <span style="color:var(--green);">safe/patched</span> mode, side by side.</p>
 
 <div class="alert alert-warn" style="margin-bottom:1.5rem;">
   ⚠️ <strong>Warning:</strong> This application is deliberately insecure. Run it only in an isolated lab environment. Never expose it to the internet.
 </div>
 
-{% if user %}
-<div class="alert alert-success" style="margin-bottom:1.5rem;">
-  ✓ Logged in as <strong>{{ user.username }}</strong> (role: {{ user.role }})
+<div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;margin-bottom:1.5rem;">
+  <button onclick="openTutorial()" class="btn btn-green" style="font-size:12px;">❓ How this platform works</button>
+  <span style="font-size:12px;color:var(--gray);">New here? Take the 60-second tour.</span>
 </div>
-{% else %}
-<div class="alert alert-info" style="margin-bottom:1.5rem;">
-  Not logged in. <a href="/login" style="color:var(--green);">Login</a> to access IDOR and other auth-required modules.
-  <br><small style="color:var(--gray);">Test accounts — admin:admin123 · alice:password1 · bob:bob123 · charlie:charlie456</small>
+
+<!-- ── HOW IT WORKS (always available) ── -->
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-header"><span>🧭</span><span class="card-title">How VulnLab Works</span></div>
+  <div class="grid-3" style="font-size:13px;color:var(--gray);">
+    <div>
+      <div style="color:var(--green);font-weight:700;margin-bottom:0.4rem;">① Pick a module</div>
+      Use the top-bar <strong>category dropdowns</strong> or the left sidebar to open any of the {{ 16 }} vulnerability demos.
+    </div>
+    <div>
+      <div style="color:var(--red);font-weight:700;margin-bottom:0.4rem;">② Exploit it (VULNERABLE)</div>
+      Each page opens in <span style="color:var(--red);">vulnerable</span> mode. Click a <strong>payload</strong> in the right sidebar (it loads into the form) and submit.
+    </div>
+    <div>
+      <div style="color:var(--cyan);font-weight:700;margin-bottom:0.4rem;">③ Inspect the request</div>
+      The <strong>Request Inspector</strong> beside the form shows the exact HTTP request and a copy-paste <code>curl</code>.
+    </div>
+    <div>
+      <div style="color:var(--blue);font-weight:700;margin-bottom:0.4rem;">④ See the fix (SAFE)</div>
+      Flip the <strong>mode switch</strong> at the top to <span style="color:var(--green);">safe</span> and re-run the payload — the exploit no longer works.
+    </div>
+    <div>
+      <div style="color:var(--yellow);font-weight:700;margin-bottom:0.4rem;">⑤ Understand why</div>
+      Use <strong>🔑 Show the fix (diff)</strong> for a line-by-line before/after, and <strong>💡 hints</strong> if you get stuck.
+    </div>
+    <div>
+      <div style="color:var(--purple);font-weight:700;margin-bottom:0.4rem;">⑥ Teaching?</div>
+      <strong>🖥 Present</strong> (top bar) enlarges text and lifts contrast for a projector. <strong>Hide reference</strong> collapses the right sidebar.
+    </div>
+  </div>
 </div>
-{% endif %}
 
 <div class="grid-2" style="margin-bottom:1.5rem;">
 
@@ -26,13 +51,14 @@
   <div class="card">
     <div class="card-header"><span>⚡</span><span class="card-title">Injection</span></div>
     <table class="table">
-      <thead><tr><th>#</th><th>Module</th><th>OWASP</th><th>Severity</th></tr></thead>
+      <thead><tr><th>Module</th><th>OWASP</th><th>Severity</th></tr></thead>
       <tbody>
-        <tr><td>1</td><td><a href="/sqli/login" style="color:var(--blue);">SQLi — Auth Bypass</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
-        <tr><td>2</td><td><a href="/sqli/search" style="color:var(--blue);">SQLi — UNION Extract</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
-        <tr><td>3</td><td><a href="/xss/reflected" style="color:var(--blue);">XSS — Reflected</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
-        <tr><td>4</td><td><a href="/xss/stored" style="color:var(--blue);">XSS — Stored</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
-        <tr><td>11</td><td><a href="/ssti" style="color:var(--blue);">SSTI — Jinja2</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
+        <tr><td><a href="/sqli/login" style="color:var(--blue);">SQLi — Auth Bypass</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
+        <tr><td><a href="/sqli/search" style="color:var(--blue);">SQLi — UNION Extract</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
+        <tr><td><a href="/xss/reflected" style="color:var(--blue);">XSS — Reflected</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
+        <tr><td><a href="/xss/stored" style="color:var(--blue);">XSS — Stored</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
+        <tr><td><a href="/ssti" style="color:var(--blue);">SSTI — Jinja2</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
+        <tr><td><a href="/cmdi" style="color:var(--blue);">Command Injection</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -41,11 +67,11 @@
   <div class="card">
     <div class="card-header"><span>🔓</span><span class="card-title">Access Control</span></div>
     <table class="table">
-      <thead><tr><th>#</th><th>Module</th><th>OWASP</th><th>Severity</th></tr></thead>
+      <thead><tr><th>Module</th><th>OWASP</th><th>Severity</th></tr></thead>
       <tbody>
-        <tr><td>5</td><td><a href="/idor/profile" style="color:var(--blue);">IDOR — Profile</a></td><td>A01:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
-        <tr><td>6</td><td><a href="/idor/orders" style="color:var(--blue);">IDOR — Orders</a></td><td>A01:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
-        <tr><td>14</td><td><a href="/logic/checkout" style="color:var(--blue);">Logic — Price Tamper</a></td><td>A04:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
+        <tr><td><a href="/idor/profile" style="color:var(--blue);">IDOR — Profile</a></td><td>A01:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
+        <tr><td><a href="/idor/orders" style="color:var(--blue);">IDOR — Orders</a></td><td>A01:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
+        <tr><td><a href="/logic/checkout" style="color:var(--blue);">Logic — Price Tamper</a></td><td>A04:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -54,10 +80,11 @@
   <div class="card">
     <div class="card-header"><span>🔑</span><span class="card-title">Auth &amp; Sessions</span></div>
     <table class="table">
-      <thead><tr><th>#</th><th>Module</th><th>OWASP</th><th>Severity</th></tr></thead>
+      <thead><tr><th>Module</th><th>OWASP</th><th>Severity</th></tr></thead>
       <tbody>
-        <tr><td>7</td><td><a href="/csrf/transfer" style="color:var(--blue);">CSRF — Fund Transfer</a></td><td>A01:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
-        <tr><td>10</td><td><a href="/jwt/login" style="color:var(--blue);">JWT — None Alg + Weak Secret</a></td><td>A07:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
+        <tr><td><a href="/csrf/transfer" style="color:var(--blue);">CSRF — Fund Transfer</a></td><td>A01:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
+        <tr><td><a href="/jwt/login" style="color:var(--blue);">JWT — None Alg + Weak Secret</a></td><td>A07:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
+        <tr><td><a href="/bruteforce" style="color:var(--blue);">Brute Force — No Rate Limit</a></td><td>A07:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -66,34 +93,59 @@
   <div class="card">
     <div class="card-header"><span>🌐</span><span class="card-title">Server-Side &amp; Misconfiguration</span></div>
     <table class="table">
-      <thead><tr><th>#</th><th>Module</th><th>OWASP</th><th>Severity</th></tr></thead>
+      <thead><tr><th>Module</th><th>OWASP</th><th>Severity</th></tr></thead>
       <tbody>
-        <tr><td>8</td><td><a href="/upload" style="color:var(--blue);">File Upload → Web Shell</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
-        <tr><td>9</td><td><a href="/ssrf/fetch" style="color:var(--blue);">SSRF — URL Fetch</a></td><td>A10:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
-        <tr><td>12</td><td><a href="/redirect/demo" style="color:var(--blue);">Open Redirect</a></td><td>A01:2021</td><td><span class="tag tag-blue">MEDIUM</span></td></tr>
-        <tr><td>13</td><td><a href="/headers" style="color:var(--blue);">Security Headers</a></td><td>A05:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
+        <tr><td><a href="/upload" style="color:var(--blue);">File Upload → Web Shell</a></td><td>A03:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
+        <tr><td><a href="/deserialize" style="color:var(--blue);">Insecure Deserialization</a></td><td>A08:2021</td><td><span class="tag tag-red">CRITICAL</span></td></tr>
+        <tr><td><a href="/ssrf/fetch" style="color:var(--blue);">SSRF — URL Fetch</a></td><td>A10:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
+        <tr><td><a href="/xxe" style="color:var(--blue);">XXE — XML External Entity</a></td><td>A05:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
+        <tr><td><a href="/redirect/demo" style="color:var(--blue);">Open Redirect</a></td><td>A01:2021</td><td><span class="tag tag-blue">MEDIUM</span></td></tr>
+        <tr><td><a href="/headers" style="color:var(--blue);">Security Headers</a></td><td>A05:2021</td><td><span class="tag tag-yellow">HIGH</span></td></tr>
       </tbody>
     </table>
   </div>
 
 </div>
 
-<div class="card">
-  <div class="card-header"><span>💡</span><span class="card-title">How to Use</span></div>
-  <div class="grid-3" style="font-size:13px;color:var(--gray);">
-    <div>
-      <div style="color:var(--green);font-weight:700;margin-bottom:0.5rem;">① Pick a module</div>
-      Use the sidebar or the tables above to navigate to any vulnerability demo.
+<div class="alert alert-info">
+  <strong>Accounts &amp; login:</strong> protected modules (IDOR, CSRF, File Upload, Checkout) auto-log you in as <strong>alice</strong> — no login wall. Switch identity at <a href="/login" style="color:var(--green);">/login</a> or via the SQLi module.
+  <br><small style="color:var(--gray);">admin:admin123 · alice:password1 · bob:bob123 · charlie:charlie456</small>
+</div>
+
+<!-- ── First-visit tutorial modal ── -->
+<div id="tutorial" class="tut-overlay" hidden>
+  <div class="tut-modal">
+    <div class="tut-head">
+      <h2>Welcome to VulnLab 👋</h2>
+      <p>A hands-on lab for learning web vulnerabilities — and their fixes. Here's the 60-second version.</p>
     </div>
-    <div>
-      <div style="color:var(--yellow);font-weight:700;margin-bottom:0.5rem;">② Exploit it</div>
-      Default mode is <span style="color:var(--red);">vulnerable</span> (<code>?safe=0</code>). Try the provided payloads or craft your own.
+    <div class="tut-body">
+      <div class="tut-step"><span class="ts-n">1</span><span class="ts-t"><strong>Every module has two modes.</strong> A <span style="color:var(--red);">VULNERABLE</span> version and a <span style="color:var(--green);">SAFE</span> (patched) version, flipped with the mode switch at the top of each module page. Pages open vulnerable by default.</span></div>
+      <div class="tut-step"><span class="ts-n">2</span><span class="ts-t"><strong>Pick a module</strong> from the top-bar category dropdowns or the left sidebar.</span></div>
+      <div class="tut-step"><span class="ts-n">3</span><span class="ts-t"><strong>Exploit it.</strong> Click a <strong>payload</strong> in the right-hand reference sidebar — it loads straight into the form. Submit and watch it work.</span></div>
+      <div class="tut-step"><span class="ts-n">4</span><span class="ts-t"><strong>Inspect &amp; learn.</strong> The <strong>Request Inspector</strong> shows the raw HTTP request; <strong>🔑 Show the fix (diff)</strong> reveals exactly what changed to patch it; <strong>💡 hints</strong> nudge you if stuck.</span></div>
+      <div class="tut-step"><span class="ts-n">5</span><span class="ts-t"><strong>Flip to SAFE</strong> and re-run the same payload — the attack no longer works. That contrast is the whole point.</span></div>
+      <div class="tut-step"><span class="ts-n">6</span><span class="ts-t"><strong>Teaching a class?</strong> Use <strong>🖥 Present</strong> for a projector-friendly view. Some modules (SSTI, Command Injection, Deserialization, XXE) run <em>real</em> code — that's intentional, and contained to this lab.</span></div>
     </div>
-    <div>
-      <div style="color:var(--blue);font-weight:700;margin-bottom:0.5rem;">③ See the fix</div>
-      Switch to <span style="color:var(--green);">safe mode</span> (<code>?safe=1</code>) to see the patched version and understand why it works.
+    <div class="tut-foot">
+      <button onclick="closeTutorial()" class="btn btn-green">Got it — let's go →</button>
     </div>
   </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openTutorial() { document.getElementById('tutorial').hidden = false; }
+function closeTutorial() {
+  document.getElementById('tutorial').hidden = true;
+  try { localStorage.setItem('vulnlab_seen_intro', '1'); } catch (e) {}
+}
+// Show automatically on a first visit
+try { if (localStorage.getItem('vulnlab_seen_intro') !== '1') document.getElementById('tutorial').hidden = false; } catch (e) {}
+// Close on Escape or backdrop click
+document.getElementById('tutorial').addEventListener('click', e => { if (e.target.id === 'tutorial') closeTutorial(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTutorial(); });
+</script>
 {% endblock %}

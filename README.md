@@ -88,6 +88,27 @@ http://localhost:5005/sqli/login?safe=1
 
 ---
 
+## Using the Interface
+
+A first-time visitor is greeted with a **"How VulnLab works" tutorial** on the
+dashboard (it also stays available via the *❓ How this platform works* button).
+Every module page shares the same layout:
+
+| Element | What it does |
+| --- | --- |
+| **Mode switch** (top of each module) | Flip between `VULNERABLE` and `SAFE`; shows a plain-language description of what the current mode does |
+| **Reference sidebar** (right, collapsible) | **How it works** (attack steps) + **Payloads** — click a payload to load it into the form (and copy it) |
+| **Request Inspector** (beside the form) | The exact HTTP request just sent, plus an equivalent `curl` command |
+| **🎯 Objective + 💡 hints** (top of page) | The goal for the module and progressive hints |
+| **🔑 Show the fix (diff)** | A line-by-line red/green diff of the vulnerable vs patched code |
+| **🖥 Present** (nav bar) | Projector-friendly view — larger text, higher contrast, remembered per browser |
+| **Category dropdowns / sidebar** | Navigate modules grouped by OWASP category |
+
+All module content (payloads, code diffs, hints, mode descriptions) is defined
+once in `modules.py` and served at `GET /api/modules`.
+
+---
+
 ## Usage with Burp Suite
 
 1. Set browser proxy to `127.0.0.1:8080`
@@ -99,10 +120,12 @@ http://localhost:5005/sqli/login?safe=1
 
 ## Recommended Lab Flow (per module)
 
-1. Understand the vulnerable code (shown in UI)
-2. Exploit it in `?safe=0` mode
-3. Switch to `?safe=1` — see the fix in action
-4. Read the diff — understand WHY the fix works
+1. Read the **🎯 Objective** and try the module in `?safe=0` (vulnerable) mode
+2. Click a **payload** in the reference sidebar to load it into the form, and submit
+3. Check the **Request Inspector** to see the raw HTTP request you just sent
+4. Flip the **mode switch** to `?safe=1` and re-run the payload — the exploit fails
+5. Hit **🔑 Show the fix (diff)** to read the line-by-line patch and understand *why*
+   (use **💡 hints** if you're stuck)
 
 ---
 

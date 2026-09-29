@@ -399,6 +399,19 @@ nav {
 .rb-tog { font-size: 11px; padding: 0.25rem 0.7rem; border: 1px solid var(--border); background: transparent; color: var(--gray); border-radius: 4px; cursor: pointer; font-family: var(--font-mono); white-space: nowrap; }
 .rb-tog:hover { color: var(--cyan); border-color: var(--cyan); }
 
+/* ── First-visit tutorial modal ── */
+.tut-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+.tut-modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; max-width: 640px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+.tut-modal .tut-head { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+.tut-modal .tut-head h2 { font-family: var(--font-head); font-size: 1.4rem; color: var(--green); }
+.tut-modal .tut-head p { font-size: 12px; color: var(--gray); margin-top: 0.25rem; }
+.tut-modal .tut-body { padding: 1.25rem 1.5rem; }
+.tut-step { display: flex; gap: 0.85rem; margin-bottom: 1rem; }
+.tut-step .ts-n { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--panel); color: var(--green); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.tut-step .ts-t { font-size: 13px; line-height: 1.5; }
+.tut-step .ts-t strong { color: var(--light); }
+.tut-modal .tut-foot { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
 /* ── RESP ── */
 @media (max-width: 1200px) {
   .main-split { grid-template-columns: 1fr; }
