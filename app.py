@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, redirect, url_for, session, jsonify, make_response
-import sqlite3, os, hashlib, hmac, base64, json, time, re, uuid, html, subprocess
+import sqlite3, os, hashlib, hmac, base64, json, time, re, uuid, html, subprocess, pickle
 from functools import wraps
 from datetime import datetime
 from modules import MODULES, MODULES_BY_ID
@@ -158,6 +158,7 @@ ENDPOINT_TO_MODULE = {
     "security_headers": "headers",
     "logic_checkout": "logic",
     "cmdi": "cmdi",
+    "deserialize": "deserialize",
 }
 
 @app.context_processor
@@ -821,6 +822,42 @@ def cmdi():
 
     return render_template("cmdi.html", safe=safe, host=host,
                            output=output, error=error, cmd_shown=cmd_shown)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 16. INSECURE DESERIALIZATION
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/deserialize", methods=["GET", "POST"])
+def deserialize():
+    safe = safe_mode()
+    blob = request.values.get("blob", "")
+    result = None
+    error = None
+
+    if blob:
+        try:
+            raw = base64.b64decode(blob)
+        except Exception:
+            raw = None
+            error = "Input is not valid base64."
+
+        if raw is not None:
+            if safe:
+                # SAFE: JSON carries data only — no code, no __reduce__ hook
+                try:
+                    result = repr(json.loads(raw.decode("utf-8", "replace")))
+                except Exception:
+                    error = "Not valid JSON. (Safe mode refuses to unpickle — send JSON preferences instead.)"
+            else:
+                # VULNERABLE: pickle.loads runs __reduce__ on the incoming object
+                try:
+                    obj = pickle.loads(raw)
+                    result = obj.decode("utf-8", "replace") if isinstance(obj, (bytes, bytearray)) else repr(obj)
+                except Exception as e:
+                    error = f"Deserialization error: {e}"
+
+    return render_template("deserialize.html", safe=safe, blob=blob,
+                           result=result, error=error)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH

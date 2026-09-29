@@ -386,6 +386,34 @@ MODULES = [
         "vuln_code": "host = request.values.get(\"host\")\n# User input concatenated straight into a shell string\ncmd = f\"ping -c 1 {host}\"\noutput = os.popen(cmd).read()   # ← shell runs ANY chained command",
         "safe_code": "host = request.values.get(\"host\")\n# 1) validate: hostnames/IPs only, no shell metacharacters\nif not re.fullmatch(r\"[A-Za-z0-9.\\-]{1,100}\", host):\n    abort(400)\n# 2) no shell — pass args as a list so input is data, not code\nsubprocess.run([\"ping\", \"-c\", \"1\", host], shell=False)",
     },
+    {
+        "id": "deserialize",
+        "title": "Insecure Deserialization",
+        "owasp": "A08:2021 · Data Integrity Failures",
+        "sev": "CRITICAL",
+        "tagline": "The app unpickles attacker-controlled data. A crafted pickle runs code the moment it's loaded.",
+        "demoUrl": "/deserialize",
+        "what": "Deserialization turns bytes back into objects. Python's pickle will call an object's __reduce__ during loading — so a crafted pickle can make the server execute arbitrary code simply by being loaded. Never unpickle data you don't fully trust (cookies, request bodies, uploads).",
+        "how": [
+            {"n": "1", "text": "App restores state by unpickling user input: ", "code": "pickle.loads(base64.b64decode(blob))"},
+            {"n": "2", "text": "Attacker crafts a class with a malicious __reduce__: ", "code": "return (subprocess.check_output, ([\"id\"],))"},
+            {"n": "3", "text": "They base64-encode the pickle and send it as the 'blob'", "code": ""},
+            {"n": "4", "text": "Server calls pickle.loads → __reduce__ fires", "code": ""},
+            {"n": "5", "text": "The command runs during load: ", "code": "uid=33(www-data)  →  RCE, no bug in 'your' code path"},
+        ],
+        "impact": {
+            "title": "Real-World Case — Apache Struts / Java & Python apps",
+            "text": "Insecure deserialization powered some of the largest RCE breaches of the last decade (Struts, WebLogic, countless Python/Ruby apps). It's dangerous because the code executes during <strong>loading</strong> — before any of the application's own logic runs — so input validation on the resulting object is far too late.",
+        },
+        "payloads": [
+            {"code": "gASVKwAAAAAAAACMCnN1YnByb2Nlc3OUjAxjaGVja19vdXRwdXSUk5RdlIwCaWSUYYWUUpQu", "desc": "Malicious pickle — unpickling runs `id` and returns its output (RCE)"},
+            {"code": "gASVIAAAAAAAAAB9lCiMBXRoZW1llIwEZGFya5SMBGxhbmeUjAJlbpR1Lg==", "desc": "Legit prefs pickle: {'theme':'dark','lang':'en'}"},
+            {"code": "class E:\\n  def __reduce__(self):\\n    return (__import__('os').system, ('id',))", "desc": "How the malicious pickle is built (__reduce__ returns a callable + args)"},
+            {"code": "eyJ0aGVtZSI6ICJkYXJrIiwgImxhbmciOiAiZW4ifQ==", "desc": "Legit JSON prefs (base64) — for safe mode, which uses json not pickle"},
+        ],
+        "vuln_code": "blob = request.values.get(\"blob\")\n# pickle.loads executes __reduce__ on the incoming object\nprefs = pickle.loads(base64.b64decode(blob))  # ← RCE on crafted input",
+        "safe_code": "blob = request.values.get(\"blob\")\n# JSON carries data only — no code, no __reduce__, no execution\nprefs = json.loads(base64.b64decode(blob))\n# (or sign the blob with HMAC and verify before trusting it)",
+    },
 ]
 
 # Convenience index by id, for routes that need a single module's metadata.

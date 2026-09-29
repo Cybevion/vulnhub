@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Insecure Deserialization{% endblock %}
+{% block content %}
+
+<h1 class="page-title">Insecure Deserialization</h1>
+<p class="page-subtitle">A08:2021 · Unpickling attacker-controlled data → code executes on load</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Preferences loaded with <code>json.loads</code> — data only, no code execution.
+  {% else %}Preferences loaded with <code>pickle.loads</code> — a crafted pickle runs code on load.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>📦</span><span class="card-title">Import Preferences</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Paste a base64-encoded preferences blob to restore it.</div>
+      <form method="POST" action="/deserialize?safe={{ '1' if safe else '0' }}">
+        <textarea name="blob" class="form-input" rows="4" placeholder="base64 blob..." style="resize:vertical;word-break:break-all;">{{ blob | e }}</textarea>
+        <button type="submit" class="btn btn-green" style="margin-top:0.5rem;">Load →</button>
+      </form>
+
+      {% if result %}
+      <div style="margin-top:1rem;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:0.35rem;">Loaded object:</div>
+        <div class="code-block" style="font-size:11px;white-space:pre-wrap;word-break:break-all;">{{ result | e }}</div>
+      </div>
+      {% endif %}
+
+      {% if error %}<div class="alert alert-danger" style="margin-top:0.75rem;">🔒 {{ error }}</div>{% endif %}
+
+      {% if not safe and result and 'uid=' in result %}
+      <div class="alert alert-danger" style="margin-top:0.75rem;">⚠ That "object" is the output of a shell command — code ran during <code>pickle.loads</code>. Full RCE.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">Payloads to Try</span></div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Click to load into the blob field:</div>
+      {% for p in module.payloads %}
+      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:0.4rem;cursor:pointer;" onclick="document.querySelector('[name=blob]').value='{{ p.code | e }}';">
+        <code style="font-size:10.5px;color:var(--red);word-break:break-all;">{{ p.code | e }}</code>
+        <div style="font-size:10px;color:var(--gray);margin-top:3px;">{{ p.desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span>🛠️</span><span class="card-title">Vulnerable vs Safe Code</span></div>
+      <div class="code-block" style="font-size:11px;">❌ VULNERABLE:
+{{ module.vuln_code }}
+
+✅ SAFE:
+{{ module.safe_code }}</div>
+      <div class="alert alert-info" style="margin-top:1rem;"><strong>Fix:</strong> Never unpickle untrusted input. Use a data-only format (JSON), or if you must use a binary format, sign the payload with HMAC and verify the signature before deserialising.</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
