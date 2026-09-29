@@ -34,6 +34,22 @@ class TestSstiPageUsesRegistry:
         assert b"leaks all Flask config" in r.data
 
 
+class TestSafeModeLimitations:
+    """Honest caveats show on the two imperfect safe-modes, only in safe mode."""
+
+    def test_ssrf_safe_shows_limitation(self, client):
+        assert b"Known limitation of this fix" in client.get("/ssrf/fetch?safe=1").data
+
+    def test_ssrf_vuln_hides_limitation(self, client):
+        assert b"Known limitation of this fix" not in client.get("/ssrf/fetch?safe=0").data
+
+    def test_xss_stored_safe_shows_limitation(self, client):
+        assert b"double-encoded" in client.get("/xss/stored?safe=1").data
+
+    def test_clean_module_has_no_limitation(self, client):
+        assert b"Known limitation of this fix" not in client.get("/ssti?safe=1").data
+
+
 class TestSqliLoginPageUsesRegistry:
     def test_payloads_from_registry(self, client):
         r = client.get("/sqli/login")

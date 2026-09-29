@@ -626,6 +626,18 @@ MODULE_MODES = {
     "xxe":           {"vuln": "Parser loads DTDs and resolves external entities — &xxe; expands to file contents.", "safe": "DTDs rejected and entities never resolved."},
 }
 
+# Honest caveats shown on modules whose "safe" mode is safe but not textbook-perfect.
+MODULE_LIMITATIONS = {
+    "ssrf": "This safe mode resolves the host and rejects internal IPs, but it "
+            "resolves-then-fetches — a determined attacker can still win a TOCTOU / "
+            "DNS-rebinding race (the name resolves to a public IP for the check, then "
+            "to an internal one for the actual request). A production fix also pins the "
+            "validated IP for the connection itself.",
+    "xss-stored": "This fix encodes on input AND the template auto-escapes on output, so "
+                  "stored comments render as visible &lt;script&gt; entities (double-encoded). "
+                  "It's safe, but the cleaner approach is to encode once — at output only.",
+}
+
 for _m in MODULES:
     _g = MODULE_GUIDANCE.get(_m["id"])
     if _g:
@@ -635,6 +647,9 @@ for _m in MODULES:
     if _mode:
         _m["mode_vuln"] = _mode["vuln"]
         _m["mode_safe"] = _mode["safe"]
+    _lim = MODULE_LIMITATIONS.get(_m["id"])
+    if _lim:
+        _m["safe_limitation"] = _lim
 
 # Convenience index by id, for routes that need a single module's metadata.
 MODULES_BY_ID = {m["id"]: m for m in MODULES}

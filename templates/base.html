@@ -585,6 +585,11 @@ nav {
   </span>
   <button class="rb-tog" onclick="toggleRightbar()" id="rb-btn" style="margin-left:0.75rem;" title="Show/hide the reference sidebar">⟩ Hide reference</button>
 </div>
+{% if is_safe and module and module.safe_limitation %}
+<div style="background:rgba(255,165,2,0.08);border-bottom:1px solid var(--border);border-left:3px solid var(--yellow);padding:0.5rem 2rem;font-size:12px;color:var(--light);line-height:1.5;">
+  <strong style="color:var(--yellow);">⚠ Known limitation of this fix:</strong> {{ module.safe_limitation | safe }}
+</div>
+{% endif %}
 {% endif %}
 
 {% if current_user %}
