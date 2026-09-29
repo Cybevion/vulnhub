@@ -143,12 +143,10 @@ class TestEntrypointRegistersAllRoutes:
                       "/api/modules", "/api/presentation/state"):
             assert route in rules, f"{route} not registered"
 
-    def test_entrypoint_is_after_all_routes(self):
-        # guard the file ordering so the bug cannot silently return
-        src = open("app.py").read()
-        main_pos = src.index('if __name__ == "__main__"')
-        last_route_pos = src.rindex("@app.route(")
-        assert main_pos > last_route_pos, "app.run() must come after every @app.route"
+    def test_all_blueprints_registered(self, app):
+        # routes now live in category blueprints, registered at import — so the
+        # "route defined after app.run()" bug can't recur
+        assert {"injection", "access", "auth", "server", "misc"} <= set(app.blueprints)
 
 
 class TestPlatformEndpoints:
