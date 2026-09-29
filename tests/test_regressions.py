@@ -132,6 +132,25 @@ class TestModuleRegistry:
                     assert key in m, f"{m['id']} missing {key}"
 
 
+class TestEntrypointRegistersAllRoutes:
+    """The `python app.py` entrypoint must sit at the end of the file: app.run()
+    blocks, so a route defined after it is silently unregistered in direct-run
+    mode (health, reset, presentation, api/modules were all affected)."""
+
+    def test_late_routes_are_registered(self, app):
+        rules = {r.rule for r in app.url_map.iter_rules()}
+        for route in ("/health", "/reset", "/presentation", "/notes",
+                      "/api/modules", "/api/presentation/state"):
+            assert route in rules, f"{route} not registered"
+
+    def test_entrypoint_is_after_all_routes(self):
+        # guard the file ordering so the bug cannot silently return
+        src = open("app.py").read()
+        main_pos = src.index('if __name__ == "__main__"')
+        last_route_pos = src.rindex("@app.route(")
+        assert main_pos > last_route_pos, "app.run() must come after every @app.route"
+
+
 class TestPlatformEndpoints:
     def test_health_ok(self, client):
         r = client.get("/health")

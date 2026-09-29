@@ -841,13 +841,6 @@ def api_message(msg_id):
     conn.close()
     return jsonify(dict(row)) if row else (jsonify({"error":"Not found"}), 404)
 
-if __name__ == "__main__":
-    init_db()
-    # debug=False: the Werkzeug interactive debugger is a remote-console RCE when
-    # bound to 0.0.0.0 — a real risk beyond the intended teaching modules. The app
-    # is deliberately vulnerable, but not *that* way. (Matches the Docker CMD.)
-    app.run(debug=False, host="0.0.0.0", port=5002)
-
 # ══════════════════════════════════════════════════════════════════════════════
 # PRESENTATION MODE
 # ══════════════════════════════════════════════════════════════════════════════
@@ -909,3 +902,15 @@ def reset_db():
     init_db()
     session.clear()
     return jsonify({"status": "reset", "message": "Database reset. All state cleared."})
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ENTRYPOINT — must stay at the end of the file: app.run() blocks, so any route
+# defined after it would never be registered when run via `python app.py`.
+# ══════════════════════════════════════════════════════════════════════════════
+
+if __name__ == "__main__":
+    init_db()
+    # debug=False: the Werkzeug interactive debugger is a remote-console RCE when
+    # bound to 0.0.0.0 — a real risk beyond the intended teaching modules. The app
+    # is deliberately vulnerable, but not *that* way. (Matches the Docker CMD.)
+    app.run(debug=False, host="0.0.0.0", port=5002)
