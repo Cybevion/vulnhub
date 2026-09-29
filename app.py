@@ -177,7 +177,6 @@ def verify_jwt(token: str, safe: bool = False):
 
 @app.route("/")
 def index():
-    init_db()
     user = current_user()
     return render_template("index.html", user=user)
 
@@ -804,3 +803,13 @@ def health():
         db_ok = False
     status = "ok" if db_ok else "degraded"
     return jsonify({"status": status, "db": db_ok}), 200 if db_ok else 503
+
+# ══════════════════════════════════════════════════════════════════════════════
+# RESET
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/reset", methods=["POST"])
+def reset_db():
+    init_db()
+    session.clear()
+    return jsonify({"status": "reset", "message": "Database reset. All state cleared."})
