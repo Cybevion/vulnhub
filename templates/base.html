@@ -96,6 +96,30 @@ nav {
 .nav-links a:hover { color: var(--green); background: rgba(57,211,83,0.08); border-color: var(--green2); }
 .nav-links a.active { color: var(--green); background: rgba(57,211,83,0.12); border-color: var(--green); }
 
+/* ── Category dropdowns ── */
+.nav-dd { position: relative; }
+.nav-dd-btn {
+  color: var(--gray); background: transparent; border: 1px solid transparent;
+  padding: 0.35rem 0.75rem; border-radius: 4px; font-size: 12px; white-space: nowrap;
+  cursor: pointer; font-family: var(--font-mono); transition: all 0.15s;
+}
+.nav-dd-btn:hover, .nav-dd:hover .nav-dd-btn { color: var(--green); background: rgba(57,211,83,0.08); border-color: var(--green2); }
+.nav-dd-btn.has-active { color: var(--green); border-color: var(--green); background: rgba(57,211,83,0.12); }
+.nav-dd-menu {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+  min-width: 230px; padding: 0.35rem; z-index: 200; box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+}
+.nav-dd:hover .nav-dd-menu, .nav-dd.open .nav-dd-menu { display: block; }
+.nav-dd-menu a {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  color: var(--light); text-decoration: none; padding: 0.4rem 0.6rem; border-radius: 4px;
+  font-size: 12px; white-space: nowrap; border: 1px solid transparent;
+}
+.nav-dd-menu a:hover { background: rgba(57,211,83,0.08); border-color: var(--green2); color: var(--green); }
+.nav-dd-menu a.active { color: var(--green); }
+.nav-dd-menu a .vuln-tag { flex: none; }
+
 .nav-right {
   display: flex;
   align-items: center;
@@ -464,24 +488,51 @@ nav {
 <nav>
   <a class="nav-logo" href="/">VULN<span>LAB</span></a>
   <div class="nav-links">
-    <a href="/sqli/login">SQLi Auth</a>
-    <a href="/sqli/search">SQLi UNION</a>
-    <a href="/xss/reflected">XSS Reflected</a>
-    <a href="/xss/stored">XSS Stored</a>
-    <a href="/idor/profile">IDOR</a>
-    <a href="/csrf/transfer">CSRF</a>
-    <a href="/upload">File Upload</a>
-    <a href="/ssrf/fetch">SSRF</a>
-    <a href="/jwt/login">JWT</a>
-    <a href="/bruteforce">Brute Force</a>
-    <a href="/ssti">SSTI</a>
-    <a href="/cmdi">Cmd Injection</a>
-    <a href="/deserialize">Deserialization</a>
-    <a href="/xxe">XXE</a>
-    <a href="/redirect/demo">Open Redirect</a>
-    <a href="/headers">Headers</a>
-    <a href="/logic/checkout">Logic Bugs</a>
-    <a href="/api/users">API</a>
+    <div class="nav-dd">
+      <button class="nav-dd-btn">Injection ▾</button>
+      <div class="nav-dd-menu">
+        <a href="/sqli/login">SQLi — Auth Bypass <span class="vuln-tag tag-critical">A03</span></a>
+        <a href="/sqli/search">SQLi — UNION Extract <span class="vuln-tag tag-critical">A03</span></a>
+        <a href="/xss/reflected">XSS — Reflected <span class="vuln-tag tag-critical">A03</span></a>
+        <a href="/xss/stored">XSS — Stored <span class="vuln-tag tag-critical">A03</span></a>
+        <a href="/ssti">SSTI — Jinja2 <span class="vuln-tag tag-critical">A03</span></a>
+        <a href="/cmdi">Command Injection <span class="vuln-tag tag-critical">A03</span></a>
+      </div>
+    </div>
+    <div class="nav-dd">
+      <button class="nav-dd-btn">Access Control ▾</button>
+      <div class="nav-dd-menu">
+        <a href="/idor/profile">IDOR — Profile <span class="vuln-tag tag-critical">A01</span></a>
+        <a href="/idor/orders">IDOR — Orders <span class="vuln-tag tag-critical">A01</span></a>
+        <a href="/logic/checkout">Logic — Price Tamper <span class="vuln-tag tag-high">A04</span></a>
+      </div>
+    </div>
+    <div class="nav-dd">
+      <button class="nav-dd-btn">Auth &amp; Sessions ▾</button>
+      <div class="nav-dd-menu">
+        <a href="/csrf/transfer">CSRF — Transfer <span class="vuln-tag tag-high">A01</span></a>
+        <a href="/jwt/login">JWT — Login <span class="vuln-tag tag-high">A07</span></a>
+        <a href="/jwt/verify">JWT — Verify <span class="vuln-tag tag-high">A07</span></a>
+        <a href="/bruteforce">Brute Force <span class="vuln-tag tag-high">A07</span></a>
+      </div>
+    </div>
+    <div class="nav-dd">
+      <button class="nav-dd-btn">Server-Side ▾</button>
+      <div class="nav-dd-menu">
+        <a href="/upload">File Upload → RCE <span class="vuln-tag tag-critical">A03</span></a>
+        <a href="/ssrf/fetch">SSRF — Fetch <span class="vuln-tag tag-high">A10</span></a>
+        <a href="/deserialize">Insecure Deserialization <span class="vuln-tag tag-critical">A08</span></a>
+        <a href="/xxe">XXE — XML Entity <span class="vuln-tag tag-high">A05</span></a>
+        <a href="/redirect/demo">Open Redirect <span class="vuln-tag tag-medium">A01</span></a>
+      </div>
+    </div>
+    <div class="nav-dd">
+      <button class="nav-dd-btn">Misconfiguration ▾</button>
+      <div class="nav-dd-menu">
+        <a href="/headers">Security Headers <span class="vuln-tag tag-high">A05</span></a>
+        <a href="/api/users">API — Exposure <span class="vuln-tag tag-high">A05</span></a>
+      </div>
+    </div>
   </div>
   <div class="nav-right">
     <button onclick="togglePresent()" id="present-btn" class="btn" title="Toggle projector-friendly display" style="padding:0.3rem 0.7rem;font-size:11px;border:1px solid var(--border);background:transparent;color:var(--gray);cursor:pointer;">🖥 Present</button>
@@ -636,10 +687,30 @@ Content-Type: application/x-www-form-urlencoded
 </div>
 
 <script>
-// Highlight current sidebar link
+// Highlight current sidebar + dropdown link, and mark the active category
 const path = window.location.pathname;
 document.querySelectorAll('.sidebar a').forEach(a => {
   if (a.getAttribute('href') === path) a.classList.add('active');
+});
+document.querySelectorAll('.nav-dd-menu a').forEach(a => {
+  if (a.getAttribute('href') === path) {
+    a.classList.add('active');
+    const btn = a.closest('.nav-dd').querySelector('.nav-dd-btn');
+    if (btn) btn.classList.add('has-active');
+  }
+});
+// Click-to-toggle dropdowns (hover works on desktop; this covers touch/click)
+document.querySelectorAll('.nav-dd-btn').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const dd = btn.closest('.nav-dd');
+    const wasOpen = dd.classList.contains('open');
+    document.querySelectorAll('.nav-dd.open').forEach(o => o.classList.remove('open'));
+    if (!wasOpen) dd.classList.add('open');
+  });
+});
+document.addEventListener('click', () => {
+  document.querySelectorAll('.nav-dd.open').forEach(o => o.classList.remove('open'));
 });
 
 // Safe mode toggle helper
