@@ -392,14 +392,21 @@ nav {
     <a href="/api/users">API</a>
   </div>
   <div class="nav-right">
-    {% if user %}
-      <span class="nav-user">logged in as <strong>{{ user.username }}</strong></span>
+    {% if current_user %}
+      <span class="nav-user">logged in as <strong>{{ current_user.username }}</strong></span>
       <a href="/logout" class="btn btn-red" style="padding:0.3rem 0.8rem;font-size:11px;">logout</a>
     {% else %}
       <a href="/login" class="btn btn-green" style="padding:0.3rem 0.8rem;font-size:11px;">login</a>
     {% endif %}
   </div>
 </nav>
+
+{% if current_user %}
+<div class="lab-banner" style="background:rgba(30,144,255,0.08);border-bottom:1px solid var(--border);border-left:3px solid var(--blue);color:var(--light);font-size:12px;line-height:1.5;padding:0.5rem 2rem;display:flex;align-items:flex-start;gap:0.6rem;">
+  <span aria-hidden="true">🎓</span>
+  <span><strong style="color:var(--blue);">Lab mode</strong> — you're auto-logged-in as <strong style="color:var(--yellow);">{{ current_user.username }}</strong> (user&nbsp;#{{ current_user.id }}). Protected modules (IDOR, CSRF, File Upload, Checkout) won't stop you at a login wall. That authenticated session is <strong>intentional</strong> — it's part of what the IDOR &amp; CSRF attacks exploit. Switch identity via <a href="/login" style="color:var(--green);text-decoration:underline;">login</a> or the <a href="/sqli/login" style="color:var(--green);text-decoration:underline;">SQLi Auth-Bypass</a> module.</span>
+</div>
+{% endif %}
 
 <div class="layout">
   <aside class="sidebar">

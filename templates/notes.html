@@ -662,7 +662,7 @@ const NOTES = [
     ],
     script: [
       { icon: "🎤", text: "Security headers are the server's instructions to the browser. Each one blocks a class of attack. They're free to add. They take 5 minutes. And most applications are still missing several." },
-      { icon: "⚡", text: "Open terminal: <code>curl -I http://localhost:5000/headers?safe=0</code>. Headers: Content-Type, nothing else security-related. Now: <code>curl -I http://localhost:5000/headers?safe=1</code>. Six security headers appear." },
+      { icon: "⚡", text: "Open terminal: <code>curl -I http://localhost:5005/headers?safe=0</code>. Headers: Content-Type, nothing else security-related. Now: <code>curl -I http://localhost:5005/headers?safe=1</code>. Six security headers appear." },
       { icon: "💡", text: "Walk through the table: CSP blocks XSS, X-Frame-Options blocks clickjacking, HSTS forces HTTPS, nosniff blocks MIME confusion, Referrer-Policy stops URL leakage, Permissions-Policy disables features." },
       { icon: "💡", text: "Clickjacking: without X-Frame-Options, this page can be embedded in a transparent iframe on any site. Attacker overlays a fake button. Victim clicks 'Win a Prize' but actually clicks 'Confirm Transfer'." },
       { icon: "🛡️", text: "Adding these in Flask is six lines of code. There's no excuse for a production app to be missing them." },
