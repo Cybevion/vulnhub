@@ -5,3 +5,7 @@ vulnhubenv/
 venv/
 .pytest_cache/
 *.db
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
