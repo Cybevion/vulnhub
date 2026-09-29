@@ -45,6 +45,23 @@
   </div>
 </div>
 
+<!-- ── YOUR PROGRESS (localStorage, this browser) ── -->
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-header">
+    <span>📊</span><span class="card-title">Your Progress</span>
+    <button onclick="resetProgress()" style="margin-left:auto;font-size:11px;padding:0.2rem 0.6rem;border:1px solid var(--border);background:transparent;color:var(--gray);border-radius:4px;cursor:pointer;font-family:var(--font-mono);">Reset</button>
+  </div>
+  <div style="font-size:12px;color:var(--gray);margin-bottom:0.5rem;">
+    Fully explored (tried <span style="color:var(--red);">vulnerable</span> ⚔ and saw the <span style="color:var(--green);">safe</span> fix 🛡):
+    <strong id="prog-count" style="color:var(--green);">0</strong>/<span id="prog-total">0</span>
+  </div>
+  <div style="background:#010409;border:1px solid var(--border);border-radius:5px;height:12px;overflow:hidden;margin-bottom:1rem;">
+    <div id="prog-fill" style="background:var(--green);height:100%;width:0%;transition:width 0.3s;"></div>
+  </div>
+  <div id="prog-list" class="grid-2" style="font-size:12px;"></div>
+  <div style="font-size:10.5px;color:var(--gray);margin-top:0.6rem;">Progress is stored only in this browser — nothing is sent anywhere.</div>
+</div>
+
 <div class="grid-2" style="margin-bottom:1.5rem;">
 
   <!-- Injection -->
@@ -149,5 +166,34 @@ try { if (localStorage.getItem('vulnlab_seen_intro') !== '1') document.getElemen
 // Close on Escape or backdrop click
 document.getElementById('tutorial').addEventListener('click', e => { if (e.target.id === 'tutorial') closeTutorial(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTutorial(); });
+
+// ── Progress checklist (reads localStorage written on each module visit) ──
+function loadProgress() {
+  var ex = {};
+  try { ex = JSON.parse(localStorage.getItem('vulnlab_explored') || '{}'); } catch (e) {}
+  fetch('/api/modules').then(r => r.json()).then(mods => {
+    var list = mods.filter(m => !m.intro);
+    var done = 0, html = '';
+    list.forEach(m => {
+      var st = ex[m.id] || {};
+      var full = st.vuln && st.safe;
+      if (full) done++;
+      html += '<a href="' + m.demoUrl + '?safe=0" style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0;border-bottom:1px solid var(--border);text-decoration:none;color:var(--light);">' +
+        '<span style="width:20px;">' + (full ? '<span style="color:var(--green);">✓</span>' : '<span style="color:var(--gray);">○</span>') + '</span>' +
+        '<span style="flex:1;">' + m.title + '</span>' +
+        '<span style="font-size:11px;">' + (st.vuln ? '<span title="tried vulnerable" style="color:var(--red);">⚔</span>' : '<span style="color:var(--border);">⚔</span>') +
+        ' ' + (st.safe ? '<span title="saw the fix" style="color:var(--green);">🛡</span>' : '<span style="opacity:0.25;">🛡</span>') + '</span></a>';
+    });
+    document.getElementById('prog-list').innerHTML = html;
+    document.getElementById('prog-count').textContent = done;
+    document.getElementById('prog-total').textContent = list.length;
+    document.getElementById('prog-fill').style.width = (list.length ? Math.round(done / list.length * 100) : 0) + '%';
+  }).catch(() => {});
+}
+function resetProgress() {
+  try { localStorage.removeItem('vulnlab_explored'); } catch (e) {}
+  loadProgress();
+}
+loadProgress();
 </script>
 {% endblock %}

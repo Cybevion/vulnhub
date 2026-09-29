@@ -809,6 +809,17 @@ try {
   }
 } catch (e) {}
 
+// ── Progress tracking (per-browser, local) — record visiting this module ──
+try {
+  var _cm = {{ (current_module_id or '') | tojson }};
+  if (_cm) {
+    var _ex = JSON.parse(localStorage.getItem('vulnlab_explored') || '{}');
+    _ex[_cm] = _ex[_cm] || {};
+    _ex[_cm][{{ is_safe | tojson }} ? 'safe' : 'vuln'] = true;
+    localStorage.setItem('vulnlab_explored', JSON.stringify(_ex));
+  }
+} catch (e) {}
+
 // Safe mode toggle helper
 function toggleSafe() {
   const url = new URL(window.location.href);
