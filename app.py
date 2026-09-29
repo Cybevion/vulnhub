@@ -159,6 +159,7 @@ ENDPOINT_TO_MODULE = {
     "logic_checkout": "logic",
     "cmdi": "cmdi",
     "deserialize": "deserialize",
+    "bruteforce": "bruteforce",
 }
 
 @app.context_processor
@@ -858,6 +859,63 @@ def deserialize():
 
     return render_template("deserialize.html", safe=safe, blob=blob,
                            result=result, error=error)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 17. BRUTE FORCE — NO RATE LIMITING
+# ══════════════════════════════════════════════════════════════════════════════
+
+_login_attempts = {}          # ip -> {"count": int, "locked_until": float}
+BRUTE_MAX_ATTEMPTS = 5
+BRUTE_LOCKOUT_SECS = 30
+
+@app.route("/bruteforce", methods=["GET", "POST"])
+def bruteforce():
+    safe = safe_mode()
+    ip = request.remote_addr or "?"
+    state = _login_attempts.setdefault(ip, {"count": 0, "locked_until": 0.0})
+    message = None
+    error = None
+    locked = False
+
+    if request.method == "POST":
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
+
+        def creds_ok():
+            conn = get_db()
+            row = conn.execute("SELECT * FROM users WHERE username=? AND password=?",
+                               (username, password)).fetchone()
+            conn.close()
+            return row is not None
+
+        if safe:
+            now = time.time()
+            if state["locked_until"] > now:
+                locked = True
+                error = f"Too many failed attempts. Locked for {int(state['locked_until'] - now)}s."
+            elif creds_ok():
+                state["count"] = 0
+                message = "Login successful. [rate limiter reset]"
+            else:
+                state["count"] += 1
+                if state["count"] >= BRUTE_MAX_ATTEMPTS:
+                    state["locked_until"] = now + BRUTE_LOCKOUT_SECS
+                    state["count"] = 0
+                    locked = True
+                    error = f"Too many failed attempts. Locked out for {BRUTE_LOCKOUT_SECS}s."
+                else:
+                    error = f"Invalid credentials. {BRUTE_MAX_ATTEMPTS - state['count']} attempts left before lockout."
+        else:
+            # VULNERABLE: no throttling — every guess is answered
+            state["count"] += 1
+            if creds_ok():
+                message = "Login successful."
+            else:
+                error = f"Invalid credentials. (Attempt #{state['count']} — no limit, brute-force freely.)"
+
+    return render_template("bruteforce.html", safe=safe, message=message,
+                           error=error, locked=locked, attempts=state["count"],
+                           max_attempts=BRUTE_MAX_ATTEMPTS)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH

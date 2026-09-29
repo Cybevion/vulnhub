@@ -20,6 +20,7 @@ import app as vulnlab  # noqa: E402
 def app():
     vulnlab.app.config.update(TESTING=True)
     vulnlab.init_db()  # fresh, deterministic seed data for every test
+    vulnlab._login_attempts.clear()  # reset brute-force rate-limit state
     return vulnlab.app
 
 

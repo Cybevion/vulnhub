@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Brute Force{% endblock %}
+{% block content %}
+
+<h1 class="page-title">Brute Force — No Rate Limiting</h1>
+<p class="page-subtitle">A07:2021 · Unlimited login attempts let a wordlist crack weak passwords</p>
+
+<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
+  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
+  {% if safe %}Failures are counted per IP — {{ max_attempts }} strikes triggers a lockout.
+  {% else %}No throttling — guess as many times as you like, as fast as you like.{% endif %}
+  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
+</div>
+
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-header"><span>🔑</span><span class="card-title">Login</span></div>
+      <form method="POST" action="/bruteforce?safe={{ '1' if safe else '0' }}">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input name="username" class="form-input" placeholder="admin" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input name="password" type="password" class="form-input" placeholder="password" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-green">Log In →</button>
+      </form>
+
+      {% if message %}<div class="alert alert-success" style="margin-top:0.75rem;">✓ {{ message }}</div>{% endif %}
+      {% if error %}<div class="alert {{ 'alert-danger' if locked else 'alert-warn' }}" style="margin-top:0.75rem;">{{ '🔒' if locked else '⚠' }} {{ error }}</div>{% endif %}
+
+      <div style="margin-top:1rem;font-size:11px;color:var(--gray);">
+        {% if safe %}Failed attempts this session: <strong style="color:var(--yellow);">{{ attempts }}</strong> / {{ max_attempts }} before lockout.
+        {% else %}Attempts made: <strong style="color:var(--red);">{{ attempts }}</strong> — no cap. A script would be at thousands by now.{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span>💡</span><span class="card-title">Attack Payloads</span></div>
+      {% for p in module.payloads %}
+      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:0.4rem;">
+        <code style="font-size:10.5px;color:var(--red);word-break:break-all;">{{ p.code | e }}</code>
+        <div style="font-size:10px;color:var(--gray);margin-top:3px;">{{ p.desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span>🛠️</span><span class="card-title">Vulnerable vs Safe Code</span></div>
+      <div class="code-block" style="font-size:11px;">❌ VULNERABLE:
+{{ module.vuln_code }}
+
+✅ SAFE:
+{{ module.safe_code }}</div>
+      <div class="alert alert-info" style="margin-top:1rem;"><strong>Fix:</strong> Rate-limit by IP and by account, lock out after a few failures with exponential backoff, add CAPTCHA on repeated failures, and prefer MFA. Log and alert on spikes.</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

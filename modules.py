@@ -414,6 +414,34 @@ MODULES = [
         "vuln_code": "blob = request.values.get(\"blob\")\n# pickle.loads executes __reduce__ on the incoming object\nprefs = pickle.loads(base64.b64decode(blob))  # ← RCE on crafted input",
         "safe_code": "blob = request.values.get(\"blob\")\n# JSON carries data only — no code, no __reduce__, no execution\nprefs = json.loads(base64.b64decode(blob))\n# (or sign the blob with HMAC and verify before trusting it)",
     },
+    {
+        "id": "bruteforce",
+        "title": "Brute Force — No Rate Limiting",
+        "owasp": "A07:2021 · Auth Failures",
+        "sev": "HIGH",
+        "tagline": "The login accepts unlimited guesses. With no lockout, a wordlist cracks weak passwords in seconds.",
+        "demoUrl": "/bruteforce",
+        "what": "When a login endpoint has no rate limiting, throttling, or lockout, an attacker can submit thousands of username/password guesses automatically. Combined with weak or common passwords, credential brute-forcing and password spraying become trivial — no exploit needed, just patience and a wordlist.",
+        "how": [
+            {"n": "1", "text": "Attacker points a tool at the login form", "code": "hydra -l admin -P rockyou.txt <host> http-post-form"},
+            {"n": "2", "text": "Each guess is a normal POST — the server answers every one", "code": ""},
+            {"n": "3", "text": "No lockout, no delay, no CAPTCHA → thousands/min", "code": ""},
+            {"n": "4", "text": "Weak password 'admin123' falls quickly", "code": ""},
+            {"n": "5", "text": "Valid credentials found → ", "code": "account takeover, no vulnerability 'exploited'"},
+        ],
+        "impact": {
+            "title": "Real-World Case — Credential Stuffing (ongoing)",
+            "text": "Billions of leaked credentials are replayed against login forms daily. Without rate limiting, attackers test them at scale — the 2019 Disney+, Nintendo, and countless bank/retailer account-takeover waves were fuelled by unthrottled logins. Rate limiting + lockout is the single cheapest control that blunts them.",
+        },
+        "payloads": [
+            {"code": "admin / admin123", "desc": "The weak password this login accepts — try it"},
+            {"code": "hydra -l admin -P rockyou.txt HOST http-post-form '/bruteforce:username=^USER^&password=^PASS^:Invalid'", "desc": "Automated brute-force with a wordlist"},
+            {"code": "alice / password1", "desc": "Another weak seed credential"},
+            {"code": "for p in $(cat words.txt); do curl -d \"username=admin&password=$p\" HOST/bruteforce; done", "desc": "A shell loop — no lockout means it just works"},
+        ],
+        "vuln_code": "# No throttling — every guess is answered\nrow = db.execute(\"SELECT * FROM users WHERE username=? AND password=?\",\n                 (username, password)).fetchone()\nreturn \"ok\" if row else \"invalid\"   # ← unlimited attempts",
+        "safe_code": "# Track failures per IP; lock out after N\nif attempts[ip] >= MAX_ATTEMPTS:\n    return \"Too many attempts — locked for 30s\", 429\nrow = db.execute(...).fetchone()\nif not row:\n    attempts[ip] += 1        # + exponential backoff / CAPTCHA / MFA\n",
+    },
 ]
 
 # Convenience index by id, for routes that need a single module's metadata.
