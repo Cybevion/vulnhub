@@ -556,23 +556,6 @@ nav {
 
   {% if current_module_id %}
   <aside class="rightbar">
-    {% if module and module.how %}
-    <div class="rb-card">
-      <div class="rb-head">
-        <span class="rb-title">🧠 How it works</span>
-        <button class="rb-toggle" onclick="toggleHow()" id="how-toggle">Hide</button>
-      </div>
-      <div id="how-body">
-        {% for step in module.how %}
-        <div class="flowstep">
-          <span class="fs-n">{{ step.n }}</span>
-          <span>{{ step.text }}{% if step.code %}<code class="fs-code">{{ step.code | e }}</code>{% endif %}</span>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
     <div class="rb-card">
       <div class="rb-head"><span class="rb-title">🌐 Request Inspector</span></div>
       {% if request.method == 'POST' or request.query_string %}
@@ -593,6 +576,23 @@ Content-Type: application/x-www-form-urlencoded
       <div style="font-size:11px;color:var(--gray);">Submit a request (search, form, or payload) and the exact HTTP traffic — plus an equivalent <code>curl</code> — appears here.</div>
       {% endif %}
     </div>
+
+    {% if module and module.how %}
+    <div class="rb-card">
+      <div class="rb-head">
+        <span class="rb-title">🧠 How it works</span>
+        <button class="rb-toggle" onclick="toggleHow()" id="how-toggle">Show</button>
+      </div>
+      <div id="how-body" hidden>
+        {% for step in module.how %}
+        <div class="flowstep">
+          <span class="fs-n">{{ step.n }}</span>
+          <span>{{ step.text }}{% if step.code %}<code class="fs-code">{{ step.code | e }}</code>{% endif %}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
   </aside>
   {% endif %}
 </div>
