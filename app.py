@@ -3,6 +3,7 @@ import sqlite3, os, hashlib, hmac, base64, json, time, re, uuid, html, subproces
 from functools import wraps
 from datetime import datetime
 from modules import MODULES, MODULES_BY_ID
+from lxml import etree
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey123"   # intentionally weak for JWT demo
@@ -160,6 +161,7 @@ ENDPOINT_TO_MODULE = {
     "cmdi": "cmdi",
     "deserialize": "deserialize",
     "bruteforce": "bruteforce",
+    "xxe": "xxe",
 }
 
 @app.context_processor
@@ -916,6 +918,45 @@ def bruteforce():
     return render_template("bruteforce.html", safe=safe, message=message,
                            error=error, locked=locked, attempts=state["count"],
                            max_attempts=BRUTE_MAX_ATTEMPTS)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 18. XXE — XML EXTERNAL ENTITY
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _xml_text(root):
+    text = (root.text or "").strip()
+    return text or etree.tostring(root, method="text", encoding="unicode").strip()
+
+@app.route("/xxe", methods=["GET", "POST"])
+def xxe():
+    safe = safe_mode()
+    xml_input = request.form.get("xml", "")
+    result = None
+    error = None
+
+    if xml_input.strip():
+        data = xml_input.encode("utf-8", "replace")
+        if safe:
+            # reject DTDs (where external entities live) and never resolve them
+            low = xml_input.lower()
+            if "<!doctype" in low or "<!entity" in low:
+                error = "Blocked: DTD / entity declarations are not allowed (prevents XXE)."
+            else:
+                try:
+                    parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False)
+                    result = _xml_text(etree.fromstring(data, parser))
+                except Exception as e:
+                    error = f"XML parse error: {e}"
+        else:
+            # VULNERABLE: resolve external entities + load DTDs
+            try:
+                parser = etree.XMLParser(load_dtd=True, resolve_entities=True, no_network=False)
+                result = _xml_text(etree.fromstring(data, parser))
+            except Exception as e:
+                error = f"XML parse error: {e}"
+
+    return render_template("xxe.html", safe=safe, xml_input=xml_input,
+                           result=result, error=error)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH

@@ -442,6 +442,34 @@ MODULES = [
         "vuln_code": "# No throttling — every guess is answered\nrow = db.execute(\"SELECT * FROM users WHERE username=? AND password=?\",\n                 (username, password)).fetchone()\nreturn \"ok\" if row else \"invalid\"   # ← unlimited attempts",
         "safe_code": "# Track failures per IP; lock out after N\nif attempts[ip] >= MAX_ATTEMPTS:\n    return \"Too many attempts — locked for 30s\", 429\nrow = db.execute(...).fetchone()\nif not row:\n    attempts[ip] += 1        # + exponential backoff / CAPTCHA / MFA\n",
     },
+    {
+        "id": "xxe",
+        "title": "XXE — XML External Entity",
+        "owasp": "A05:2021 · Security Misconfiguration",
+        "sev": "HIGH",
+        "tagline": "An XML parser that resolves external entities will read local files (and reach internal URLs) on command.",
+        "demoUrl": "/xxe",
+        "what": "XML External Entity injection happens when an XML parser processes a document that defines external entities and the parser is configured to resolve them. An attacker declares an entity pointing at a local file or internal URL; when the parser expands it, the file contents (or the internal response) end up in the output — file disclosure and SSRF from a single XML upload.",
+        "how": [
+            {"n": "1", "text": "App parses user-supplied XML with entity resolution on", "code": "etree.fromstring(xml, XMLParser(resolve_entities=True))"},
+            {"n": "2", "text": "Attacker declares an external entity in a DTD: ", "code": "<!ENTITY xxe SYSTEM \"file:///etc/passwd\">"},
+            {"n": "3", "text": "…and references it in the body: ", "code": "<data>&xxe;</data>"},
+            {"n": "4", "text": "Parser fetches the file and expands the entity", "code": ""},
+            {"n": "5", "text": "File contents returned in the response → ", "code": "root:x:0:0:...  →  local file disclosure"},
+        ],
+        "impact": {
+            "title": "Real-World Case — Facebook, Google, many SOAP/SAML APIs",
+            "text": "XXE has yielded file reads and SSRF on major platforms (Facebook paid a $33k bounty for one). Any endpoint accepting XML — SOAP, SAML, SVG, DOCX, RSS — is a candidate. It reads config files with DB credentials, cloud keys, or reaches the metadata service, all without authentication.",
+        },
+        "payloads": [
+            {"code": "<?xml version=\"1.0\"?>\n<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]>\n<data>&xxe;</data>", "desc": "Read /etc/passwd via an external entity"},
+            {"code": "<?xml version=\"1.0\"?>\n<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/hostname\">]>\n<data>&xxe;</data>", "desc": "Read the server hostname"},
+            {"code": "<?xml version=\"1.0\"?>\n<data>just a normal message</data>", "desc": "Legit XML — no DTD, parses as plain data"},
+            {"code": "<!ENTITY xxe SYSTEM \"http://169.254.169.254/latest/meta-data/\">", "desc": "SSRF via XXE — point the entity at an internal URL (concept)"},
+        ],
+        "vuln_code": "from lxml import etree\n# Parser resolves external entities and loads DTDs\nparser = etree.XMLParser(load_dtd=True, resolve_entities=True)\nroot = etree.fromstring(xml, parser)   # ← &xxe; expands to file contents / SSRF",
+        "safe_code": "from lxml import etree\n# Never resolve entities, never load DTDs, no network\nparser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False)\nroot = etree.fromstring(xml, parser)\n# (or use the 'defusedxml' library, which hardens the stdlib parsers)",
+    },
 ]
 
 # Convenience index by id, for routes that need a single module's metadata.
