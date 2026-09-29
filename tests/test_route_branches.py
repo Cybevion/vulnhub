@@ -67,6 +67,14 @@ class TestServerSideBranches:
         assert r.status_code == 302
         assert r.headers["Location"] == "https://vulnlab.local/x"
 
+    def test_open_redirect_demo_has_module_chrome(self, client):
+        # the demo page is now a registered module: sticky mode switch + payloads
+        # sidebar, no leftover inline mode-banner
+        r = client.get("/redirect/demo")
+        assert b'class="mode-switch"' in r.data
+        assert b'class="mode-banner"' not in r.data
+        assert b"Payloads" in r.data
+
 
 class TestSsrfSimulatedResponses:
     """Vulnerable SSRF returns simulated internal responses (no real network)."""

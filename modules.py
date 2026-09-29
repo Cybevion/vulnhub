@@ -470,6 +470,34 @@ MODULES = [
         "vuln_code": "from lxml import etree\n# Parser resolves external entities and loads DTDs\nparser = etree.XMLParser(load_dtd=True, resolve_entities=True)\nroot = etree.fromstring(xml, parser)   # ← &xxe; expands to file contents / SSRF",
         "safe_code": "from lxml import etree\n# Never resolve entities, never load DTDs, no network\nparser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False)\nroot = etree.fromstring(xml, parser)\n# (or use the 'defusedxml' library, which hardens the stdlib parsers)",
     },
+    {
+        "id": "open-redirect",
+        "title": "Open Redirect",
+        "owasp": "A01:2021 · Broken Access Control",
+        "sev": "MEDIUM",
+        "tagline": "An unvalidated redirect parameter sends users to any external site — ideal for phishing.",
+        "demoUrl": "/redirect/demo",
+        "what": "Open redirect happens when an app redirects to a URL taken from user input without validating it. Attackers use a trusted domain's redirect to send victims to a look-alike phishing page, or to leak OAuth tokens to an attacker-controlled callback.",
+        "how": [
+            {"n": "1", "text": "App redirects to a user-supplied URL: ", "code": "GET /redirect?url=/dashboard"},
+            {"n": "2", "text": "Attacker swaps in an external URL: ", "code": "GET /redirect?url=https://evil.com"},
+            {"n": "3", "text": "Victim sees a link on the TRUSTED domain and clicks it", "code": ""},
+            {"n": "4", "text": "The server 302-redirects them off to the attacker's site", "code": ""},
+            {"n": "5", "text": "Phishing page or OAuth token theft → ", "code": "credentials / tokens captured"},
+        ],
+        "impact": {
+            "title": "Real-World Case — OAuth token theft & phishing",
+            "text": "Open redirects are a staple of phishing and have repeatedly been chained into <strong>OAuth token theft</strong> on major platforms (the redirect_uri is sent an auth code that leaks to the attacker). On their own they're rated Medium, but chained they enable full account takeover.",
+        },
+        "payloads": [
+            {"code": "https://evil.com", "desc": "External redirect — blocked by the allowlist in safe mode"},
+            {"code": "//evil.com", "desc": "Protocol-relative — bypasses a naive scheme check"},
+            {"code": "/\\/\\evil.com", "desc": "Backslash trick browsers normalise to //"},
+            {"code": "/dashboard", "desc": "A relative path — allowed in both modes (this is the legit use)"},
+        ],
+        "vuln_code": "url = request.args.get(\"url\", \"/\")\n# No validation — redirects anywhere the user asks\nreturn redirect(url)",
+        "safe_code": "url = request.args.get(\"url\", \"/\")\nparsed = urlparse(url)\n# allow only relative paths or an allowlisted origin\nif parsed.scheme or parsed.netloc or url.startswith(\"//\"):\n    if not is_allowlisted(url):\n        abort(400)\nreturn redirect(url)",
+    },
 ]
 
 # Per-module guided-exercise content: a one-line objective and progressive hints.
@@ -603,6 +631,14 @@ MODULE_GUIDANCE = {
             "Reference it with &xxe; in the document body.",
         ],
     },
+    "open-redirect": {
+        "objective": "Get the app to redirect a victim to an external site.",
+        "hints": [
+            "The redirect target comes straight from the ?url parameter.",
+            "In vulnerable mode any URL is accepted — even off-site ones.",
+            "Try url=https://evil.com (or //evil.com to dodge a naive check).",
+        ],
+    },
 }
 
 # Per-mode, per-module one-liners describing what vulnerable/safe mode does.
@@ -624,6 +660,7 @@ MODULE_MODES = {
     "deserialize":   {"vuln": "Loaded with pickle.loads — a crafted pickle runs code on load.", "safe": "Loaded with json.loads — data only, no code execution."},
     "bruteforce":    {"vuln": "No throttling — guess as many times as you like, as fast as you like.", "safe": "Failures counted per IP — a few strikes triggers a lockout."},
     "xxe":           {"vuln": "Parser loads DTDs and resolves external entities — &xxe; expands to file contents.", "safe": "DTDs rejected and entities never resolved."},
+    "open-redirect": {"vuln": "Any URL accepted as a redirect target — including external sites.", "safe": "Only relative paths / allowlisted origins are allowed."},
 }
 
 # Honest caveats shown on modules whose "safe" mode is safe but not textbook-perfect.

@@ -219,4 +219,5 @@ ENDPOINT_TO_MODULE = {
     "deserialize": "deserialize",
     "bruteforce": "bruteforce",
     "xxe": "xxe",
+    "open_redirect_demo": "open-redirect",
 }

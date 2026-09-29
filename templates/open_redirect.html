@@ -3,11 +3,6 @@
 {% block content %}
 <h1 class="page-title">Open Redirect</h1>
 <p class="page-subtitle">A01:2021 · Unvalidated redirect parameter sends users to arbitrary external sites</p>
-<div class="mode-banner {{ 'safe' if safe else 'vuln' }}">
-  <span class="badge">{{ 'SAFE MODE' if safe else 'VULNERABLE' }}</span>
-  {% if safe %}Redirect targets validated against allowlist — external URLs rejected.{% else %}Any URL accepted as redirect destination.{% endif %}
-  <button onclick="toggleSafe()" class="btn {{ 'btn-red' if safe else 'btn-green' }}" style="margin-left:auto;font-size:11px;padding:0.3rem 0.8rem;">Switch to {{ 'Vulnerable' if safe else 'Safe' }} Mode</button>
-</div>
 <div class="split">
   <div>
     <div class="card">

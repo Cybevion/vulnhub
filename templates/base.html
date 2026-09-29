@@ -78,10 +78,8 @@ nav {
   display: flex;
   gap: 0.25rem;
   flex: 1;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;   /* must stay visible or the category dropdowns get clipped */
 }
-.nav-links::-webkit-scrollbar { display: none; }
 
 .nav-links a {
   color: var(--gray);
@@ -374,9 +372,9 @@ nav {
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 
 /* ── MAIN split: module content (left) + Request Inspector (right) ── */
-.main-split { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.5rem; align-items: start; }
+.main-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 1.5rem; align-items: start; }
+.main-split > * { min-width: 0; }   /* let children shrink instead of overflowing into the next column */
 .main-split .split { grid-template-columns: 1fr; }  /* stack the module's own split so the inspector has room */
-.ms-inspect { position: sticky; top: 110px; }
 
 /* ── RIGHT SIDEBAR (module reference: how-it-works + request inspector) ── */
 .layout.has-right { grid-template-columns: 220px minmax(0, 1fr) 340px; }
