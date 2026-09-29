@@ -1,2 +1,7 @@
 __pycache__/
+*.pyc
 .venv/
+vulnhubenv/
+venv/
+.pytest_cache/
+*.db

@@ -164,4 +164,20 @@ Returns `200` if the DB is reachable, `503` if degraded.
 
 ---
 
+## Running the Tests
+
+The test suite locks the **safe/vulnerable contract**: for every module it asserts
+the exploit *fires* in `?safe=0` and is *blocked* in `?safe=1`, plus regression
+tests for previously fixed defects (open-redirect bypass, JWT expiry, SSRF host
+resolution, input-crash guards).
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+CI runs the same suite on every push via `.github/workflows/tests.yml`.
+
+---
+
 *For educational use only. Built by Cybevion.*
