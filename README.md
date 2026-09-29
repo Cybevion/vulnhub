@@ -53,6 +53,10 @@ python app.py
 | 12 | Open Redirect | A01:2021 | MEDIUM | `/redirect` |
 | 13 | Security Headers | A05:2021 | HIGH | `/headers` |
 | 14 | Business Logic — Price Tamper | A04:2021 | HIGH | `/logic/checkout` |
+| 15 | Command Injection | A03:2021 | CRITICAL | `/cmdi` |
+| 16 | Insecure Deserialization | A08:2021 | CRITICAL | `/deserialize` |
+| 17 | Brute Force — No Rate Limiting | A07:2021 | HIGH | `/bruteforce` |
+| 18 | XXE — XML External Entity | A05:2021 | HIGH | `/xxe` |
 
 ---
 
@@ -64,6 +68,8 @@ python app.py
 | alice | password1 | user | 2 |
 | bob | bob123 | user | 3 |
 | charlie | charlie456 | user | 4 |
+
+> **Lab auto-login:** to avoid a login wall on protected modules (IDOR, CSRF, File Upload, Checkout), the app auto-authenticates you as **alice** and shows a banner saying so. An authenticated session is *intentional* — it's part of what the IDOR and CSRF attacks exploit. Log in via `/login` (or the SQLi module) to switch identity.
 
 ---
 
@@ -119,8 +125,15 @@ These are intentional vulnerabilities not listed in the main module table. Find 
 
 Important behaviours to communicate to students before starting labs:
 
-### SSTI is Live Code Execution
-Module 11 (`/ssti`) uses `render_template_string()` with unsanitised user input. Jinja2 payloads like `{{7*7}}`, `{{config}}`, and full RCE sandbox-escape chains will **actually execute** inside the Python process. Since the app runs in Docker, the blast radius is contained — but students should understand they are executing real server-side code, not a simulation. This is intentional: the goal is to demonstrate real impact.
+### Several Modules Execute Real Code
+
+Module 11 (`/ssti`) uses `render_template_string()` with unsanitised user input. Jinja2 payloads like `{{7*7}}`, `{{config}}`, and full RCE sandbox-escape chains will **actually execute** inside the Python process. The same is true of three of the newer modules:
+
+- **Command Injection (`/cmdi`)** runs `os.popen()` on shell strings built from user input — `; id`, `| whoami`, etc. run real OS commands.
+- **Insecure Deserialization (`/deserialize`)** calls `pickle.loads()` on attacker-supplied blobs — a crafted pickle runs code during loading.
+- **XXE (`/xxe`)** resolves external XML entities — `file://` entities read real local files.
+
+Since the app runs in Docker (or an isolated lab machine), the blast radius is contained — but students should understand they are executing real server-side code, not a simulation. This is intentional: the goal is to demonstrate real impact.
 
 ### Path Traversal on File Serve Endpoint
 The route `/upload/serve/<path:filename>` uses Flask's `path:` converter, which allows slashes in the URL. In vulnerable mode, a request like `/upload/serve/../../etc/passwd` may resolve to files outside the upload directory. This is not documented as a standalone module but is a valid finding for students who probe the upload feature beyond the intended flow.
