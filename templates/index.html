@@ -118,7 +118,7 @@
     <div class="tut-head">
       <button class="tut-x" onclick="closeTutorial()" title="Dismiss" aria-label="Dismiss">✕</button>
       <h2>Welcome to VulnLab 👋</h2>
-      <p>A hands-on lab for learning web vulnerabilities — and their fixes. Here's the 60-second version.</p>
+      <p>A hands-on lab for learning web vulnerabilities — and their fixes. Here's the gist; the <strong style="color:var(--green);">interactive tour</strong> below then points out each button on a real module page.</p>
     </div>
     <div class="tut-body">
       <div class="tut-step"><span class="ts-n">1</span><span class="ts-t"><strong>Every module has two modes.</strong> A <span style="color:var(--red);">VULNERABLE</span> version and a <span style="color:var(--green);">SAFE</span> (patched) version, flipped with the mode switch at the top of each module page. Pages open vulnerable by default.</span></div>
@@ -129,7 +129,8 @@
       <div class="tut-step"><span class="ts-n">6</span><span class="ts-t"><strong>Teaching a class?</strong> Use <strong>🖥 Present</strong> for a projector-friendly view. Some modules (SSTI, Command Injection, Deserialization, XXE) run <em>real</em> code — that's intentional, and contained to this lab.</span></div>
     </div>
     <div class="tut-foot">
-      <button onclick="closeTutorial()" class="btn btn-green">Got it — let's go →</button>
+      <button onclick="closeTutorial()" class="btn" style="border:1px solid var(--border);background:transparent;color:var(--gray);">Maybe later</button>
+      <a href="/sqli/login?safe=0&tour=1" class="btn btn-green">▶ Take the interactive tour</a>
     </div>
   </div>
 </div>

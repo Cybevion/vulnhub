@@ -413,7 +413,19 @@ nav {
 .tut-step .ts-n { flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--panel); color: var(--green); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
 .tut-step .ts-t { font-size: 13px; line-height: 1.5; }
 .tut-step .ts-t strong { color: var(--light); }
-.tut-modal .tut-foot { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; }
+.tut-modal .tut-foot { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap; }
+
+/* ── Guided tour (coach-marks) ── */
+.tour-target { position: relative; z-index: 1200 !important; box-shadow: 0 0 0 3px var(--green), 0 0 0 9999px rgba(0,0,0,0.72) !important; border-radius: 6px; }
+.tour-pop { position: fixed; z-index: 1300; width: 300px; max-width: calc(100vw - 24px); background: var(--bg2); border: 1px solid var(--green2); border-radius: 8px; padding: 0.9rem 1rem; box-shadow: 0 12px 40px rgba(0,0,0,0.6); }
+.tour-pop h4 { color: var(--green); font-size: 13px; margin-bottom: 0.35rem; }
+.tour-pop p { color: var(--light); font-size: 12.5px; line-height: 1.5; }
+.tour-pop .tp-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 0.85rem; gap: 0.5rem; }
+.tour-pop .tp-count { font-size: 11px; color: var(--gray); }
+.tour-pop .tp-btns { display: flex; gap: 0.4rem; }
+.tour-pop button { font-size: 11px; padding: 0.3rem 0.7rem; border-radius: 4px; cursor: pointer; font-family: var(--font-mono); border: 1px solid var(--border); background: transparent; color: var(--gray); }
+.tour-pop button:hover { color: var(--light); }
+.tour-pop button.tp-next { background: var(--green2); border-color: var(--green2); color: #fff; }
 
 /* ── RESP ── */
 @media (max-width: 1200px) {
@@ -728,6 +740,69 @@ document.querySelectorAll('.nav-dd-btn').forEach(btn => {
 document.addEventListener('click', () => {
   document.querySelectorAll('.nav-dd.open').forEach(o => o.classList.remove('open'));
 });
+
+// ── Guided tour (coach-marks) — highlights each real element in turn ──
+const TOUR_STEPS = [
+  { sel: '.mode-switch .ms-track', title: 'Mode switch', text: 'Flip the whole module between VULNERABLE and SAFE here. Pages start vulnerable.' },
+  { sel: 'main form', title: 'The target form', text: 'Your input goes here. Load a payload or type your own, then submit to run it against the code.' },
+  { sel: '.rightbar', title: 'Payloads & How it works', text: 'Click any payload to load it straight into the form. "How it works" explains the attack step by step.', before: () => { if (document.querySelector('.layout').classList.contains('rb-collapsed')) applyRightbar(false); } },
+  { sel: '.ms-inspect', title: 'Request Inspector', text: 'After you submit, this shows the exact HTTP request you sent — plus a copy-paste curl.' },
+  { sel: '#sol-btn', title: 'Show the fix', text: 'Reveals a line-by-line diff of the vulnerable vs patched code — the “why” behind the fix.' },
+  { sel: '#hint-btn', title: 'Hints', text: 'Stuck? Reveal progressive hints, one at a time.' },
+  { sel: '#present-btn', title: 'Present mode', text: 'Enlarges text and lifts contrast for a projector or classroom.' },
+  { sel: '.nav-links', title: 'Switch modules', text: 'Jump to any other module via these OWASP-category dropdowns.' },
+];
+let _tourI = 0, _tourSteps = [];
+function startTour() {
+  _tourSteps = TOUR_STEPS.filter(s => document.querySelector(s.sel));
+  if (!_tourSteps.length) return;
+  _tourI = 0;
+  showTourStep();
+}
+function endTour() {
+  document.querySelectorAll('.tour-target').forEach(e => e.classList.remove('tour-target'));
+  const pop = document.getElementById('tour-pop');
+  if (pop) pop.remove();
+  try { localStorage.setItem('vulnlab_seen_intro', '1'); } catch (e) {}
+}
+function showTourStep() {
+  document.querySelectorAll('.tour-target').forEach(e => e.classList.remove('tour-target'));
+  const step = _tourSteps[_tourI];
+  const el = document.querySelector(step.sel);
+  if (!el) { if (_tourI < _tourSteps.length - 1) { _tourI++; showTourStep(); } else { endTour(); } return; }
+  if (step.before) step.before();
+  el.classList.add('tour-target');
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  let pop = document.getElementById('tour-pop');
+  if (!pop) { pop = document.createElement('div'); pop.id = 'tour-pop'; pop.className = 'tour-pop'; document.body.appendChild(pop); }
+  const last = _tourI === _tourSteps.length - 1;
+  pop.innerHTML =
+    '<h4>' + step.title + '</h4><p>' + step.text + '</p>' +
+    '<div class="tp-foot"><span class="tp-count">' + (_tourI + 1) + ' / ' + _tourSteps.length + '</span>' +
+    '<span class="tp-btns"><button onclick="endTour()">Skip</button>' +
+    (_tourI > 0 ? '<button onclick="tourPrev()">Back</button>' : '') +
+    '<button class="tp-next" onclick="' + (last ? 'endTour()' : 'tourNext()') + '">' + (last ? 'Done' : 'Next →') + '</button></span></div>';
+
+  // position the popover near the highlighted element
+  setTimeout(() => {
+    const r = el.getBoundingClientRect();
+    const pr = pop.getBoundingClientRect();
+    let top = r.bottom + 12, left = r.left;
+    if (top + pr.height > window.innerHeight - 8) top = Math.max(8, r.top - pr.height - 12);
+    if (left + pr.width > window.innerWidth - 8) left = window.innerWidth - pr.width - 8;
+    pop.style.top = Math.max(8, top) + 'px';
+    pop.style.left = Math.max(8, left) + 'px';
+  }, 300);
+}
+function tourNext() { if (_tourI < _tourSteps.length - 1) { _tourI++; showTourStep(); } else endTour(); }
+function tourPrev() { if (_tourI > 0) { _tourI--; showTourStep(); } }
+// Auto-start when arriving with ?tour=1 (on a module page)
+try {
+  if (new URLSearchParams(location.search).get('tour') === '1' && document.querySelector('.mode-switch')) {
+    setTimeout(startTour, 400);
+  }
+} catch (e) {}
 
 // Safe mode toggle helper
 function toggleSafe() {
