@@ -40,15 +40,8 @@
 
   <div>
     <div class="card">
-      <div class="card-header"><span>💡</span><span class="card-title">Payloads to Try</span></div>
-      {% for p in module.payloads %}
-      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:0.4rem;cursor:pointer;" onclick="document.querySelector('[name=q]').value='{{ p.code | e }}'; document.querySelector('form').submit();">
-        <code style="font-size:11px;color:var(--red);">{{ p.code | e }}</code>
-        <div style="font-size:10px;color:var(--gray);margin-top:3px;">{{ p.desc }}</div>
-      </div>
-      {% endfor %}
-
-      <div class="alert alert-info" style="margin-top:1rem;">
+      <div class="card-header"><span>🛠️</span><span class="card-title">Remediation</span></div>
+      <div class="alert alert-info">
         <strong>Fix:</strong> <code>html.escape(q)</code> before rendering. In Jinja2: use <code>{{ "{{ var }}" }}</code> (auto-escaped), never <code>{{ "{{ var | safe }}" }}</code> with user data.
       </div>
     </div>

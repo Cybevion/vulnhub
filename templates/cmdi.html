@@ -42,18 +42,7 @@
 
   <div>
     <div class="card">
-      <div class="card-header"><span>💡</span><span class="card-title">Payloads to Try</span></div>
-      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Paste into the host field in vulnerable mode:</div>
-      {% for p in module.payloads %}
-      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:0.4rem;cursor:pointer;" onclick="document.querySelector('[name=host]').value='{{ p.code | e }}';">
-        <code style="font-size:11px;color:var(--red);word-break:break-all;">{{ p.code | e }}</code>
-        <div style="font-size:10px;color:var(--gray);margin-top:3px;">{{ p.desc }}</div>
-      </div>
-      {% endfor %}
-    </div>
-
-    <div class="card">
-      <div class="card-header"><span>🛠️</span><span class="card-title">Vulnerable vs Safe Code</span></div>
+      <div class="card-header"><span>🛠️</span><span class="card-title">Remediation</span></div>
       <div style="font-size:12px;color:var(--gray);padding:0.4rem 0;">→ Use <strong style="color:var(--blue);">🔑 Show the fix (diff)</strong> at the top of the page for a line-by-line before/after.</div>
       <div class="alert alert-info" style="margin-top:1rem;"><strong>Fix:</strong> Never build shell strings from user input. Validate strictly, and pass arguments as a list to <code>subprocess.run(..., shell=False)</code> so input is data, never code.</div>
     </div>

@@ -43,18 +43,9 @@
 
   <div>
     <div class="card">
-      <div class="card-header"><span>💡</span><span class="card-title">Attack Payloads</span></div>
-      <div style="font-size:12px;color:var(--gray);margin-bottom:0.75rem;">Paste these into the comment body in vulnerable mode:</div>
-
-      {% for p in module.payloads %}
-      <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.6rem 0.8rem;margin-bottom:0.5rem;">
-        <code style="font-size:10.5px;color:var(--red);word-break:break-all;">{{ p.code | e }}</code>
-        <div style="font-size:10px;color:var(--gray);margin-top:4px;">{{ p.desc }}</div>
-      </div>
-      {% endfor %}
-
-      <div class="alert alert-warn" style="margin-top:1rem;">
-        <strong>Why it's dangerous:</strong> Stored XSS fires for every visitor. Admin visits the page → attacker has admin's session cookie → full account takeover without admin doing anything suspicious.
+      <div class="card-header"><span>⚠️</span><span class="card-title">Why it's dangerous</span></div>
+      <div class="alert alert-warn">
+        <strong>Stored XSS fires for every visitor.</strong> Admin visits the page → attacker has admin's session cookie → full account takeover without admin doing anything suspicious.
       </div>
     </div>
   </div>

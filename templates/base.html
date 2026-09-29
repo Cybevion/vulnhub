@@ -360,6 +360,15 @@ nav {
 .flowstep { display: flex; gap: 0.5rem; margin-bottom: 0.65rem; font-size: 11.5px; line-height: 1.45; }
 .flowstep .fs-n { flex: none; width: 18px; height: 18px; border-radius: 50%; background: var(--panel); color: var(--green); font-weight: 700; font-size: 10px; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
 .flowstep .fs-code { display: block; margin-top: 4px; color: var(--red); background: #010409; border: 1px solid var(--border); border-radius: 3px; padding: 2px 6px; word-break: break-all; }
+.rightbar .rb-payload { background: #010409; border: 1px solid var(--border); border-radius: 5px; padding: 0.5rem 0.6rem; margin-bottom: 0.4rem; cursor: pointer; }
+.rightbar .rb-payload:hover { border-color: var(--red); }
+.rightbar .rb-payload code { font-size: 10.5px; color: var(--red); word-break: break-all; display: block; }
+.rightbar .rb-payload-desc { font-size: 10px; color: var(--gray); margin-top: 3px; }
+/* collapsed sidebar */
+.layout.has-right.rb-collapsed { grid-template-columns: 220px 1fr; }
+.layout.rb-collapsed .rightbar { display: none; }
+.rb-tog { font-size: 11px; padding: 0.25rem 0.7rem; border: 1px solid var(--border); background: transparent; color: var(--gray); border-radius: 4px; cursor: pointer; font-family: var(--font-mono); white-space: nowrap; }
+.rb-tog:hover { color: var(--cyan); border-color: var(--cyan); }
 
 /* ── RESP ── */
 @media (max-width: 1024px) {
@@ -486,6 +495,7 @@ nav {
   <span class="ms-desc" style="font-size:12px;color:var(--light);">
     {% if module and module.mode_vuln %}{{ module.mode_safe if is_safe else module.mode_vuln }}{% else %}{{ 'The fix is active.' if is_safe else 'The vulnerability is live.' }}{% endif %}
   </span>
+  <button class="rb-tog" onclick="toggleRightbar()" id="rb-btn" style="margin-left:0.75rem;" title="Show/hide the reference sidebar">⟩ Hide reference</button>
 </div>
 {% endif %}
 
@@ -552,13 +562,12 @@ nav {
     {% endif %}
 
     {% block content %}{% endblock %}
-  </main>
 
-  {% if current_module_id %}
-  <aside class="rightbar">
-    <div class="rb-card">
-      <div class="rb-head"><span class="rb-title">🌐 Request Inspector</span></div>
+    {% if current_module_id %}
+    <div class="card" style="margin-top:1.25rem;">
+      <div class="card-header"><span>🌐</span><span class="card-title">Request Inspector</span></div>
       {% if request.method == 'POST' or request.query_string %}
+      <div style="font-size:11px;color:var(--gray);margin-bottom:0.6rem;">The exact request the browser just sent — the raw traffic behind this page.</div>
       <div class="reqview">
         <div class="rv-tag">HTTP</div>
         <div class="rv-req">{{ request.method }} {{ request.full_path if request.query_string else request.path }} HTTP/1.1
@@ -576,14 +585,15 @@ Content-Type: application/x-www-form-urlencoded
       <div style="font-size:11px;color:var(--gray);">Submit a request (search, form, or payload) and the exact HTTP traffic — plus an equivalent <code>curl</code> — appears here.</div>
       {% endif %}
     </div>
+    {% endif %}
+  </main>
 
+  {% if current_module_id %}
+  <aside class="rightbar" id="rightbar">
     {% if module and module.how %}
     <div class="rb-card">
-      <div class="rb-head">
-        <span class="rb-title">🧠 How it works</span>
-        <button class="rb-toggle" onclick="toggleHow()" id="how-toggle">Show</button>
-      </div>
-      <div id="how-body" hidden>
+      <div class="rb-head"><span class="rb-title">🧠 How it works</span></div>
+      <div>
         {% for step in module.how %}
         <div class="flowstep">
           <span class="fs-n">{{ step.n }}</span>
@@ -591,6 +601,19 @@ Content-Type: application/x-www-form-urlencoded
         </div>
         {% endfor %}
       </div>
+    </div>
+    {% endif %}
+
+    {% if module and module.payloads %}
+    <div class="rb-card">
+      <div class="rb-head"><span class="rb-title">💡 Payloads</span></div>
+      <div style="font-size:10.5px;color:var(--gray);margin-bottom:0.5rem;">Click to load into the form (also copied to clipboard).</div>
+      {% for p in module.payloads %}
+      <div class="rb-payload" onclick="usePayload({{ p.code | tojson }}{% if p.pw is defined %}, {{ p.pw | tojson }}{% endif %})" title="Click to use">
+        <code>{{ p.code | e }}</code>
+        <div class="rb-payload-desc">{{ p.desc }}{% if p.pw is defined %} · pass: {{ p.pw }}{% endif %}</div>
+      </div>
+      {% endfor %}
     </div>
     {% endif %}
   </aside>
@@ -625,14 +648,31 @@ function togglePresent() {
 }
 try { if (localStorage.getItem('vulnlab_present') === '1') applyPresent(true); } catch (e) {}
 
-// ── "How it works" collapse toggle ──
-function toggleHow() {
-  const body = document.getElementById('how-body');
-  const btn = document.getElementById('how-toggle');
-  if (!body) return;
-  const hidden = body.hidden = !body.hidden;
-  if (btn) btn.textContent = hidden ? 'Show' : 'Hide';
+// ── Reference sidebar: click a payload to load it into the main form ──
+function usePayload(code, pw) {
+  const input = document.querySelector('main textarea, main input[type=text], main input:not([type]):not([name=safe])');
+  if (input) { input.value = code; input.focus(); }
+  if (pw !== undefined) {
+    const p = document.querySelector('main input[type=password], main input[name=password]');
+    if (p) p.value = pw;
+  }
+  try { navigator.clipboard && navigator.clipboard.writeText(code); } catch (e) {}
 }
+
+// ── Collapse / expand the whole reference sidebar ──
+function applyRightbar(collapsed) {
+  const layout = document.querySelector('.layout');
+  const btn = document.getElementById('rb-btn');
+  if (!layout) return;
+  layout.classList.toggle('rb-collapsed', collapsed);
+  if (btn) btn.textContent = collapsed ? '⟨ Show reference' : '⟩ Hide reference';
+}
+function toggleRightbar() {
+  const collapsed = !document.querySelector('.layout').classList.contains('rb-collapsed');
+  applyRightbar(collapsed);
+  try { localStorage.setItem('vulnlab_rb_collapsed', collapsed ? '1' : '0'); } catch (e) {}
+}
+try { if (localStorage.getItem('vulnlab_rb_collapsed') === '1') applyRightbar(true); } catch (e) {}
 
 // ── Progressive hints ──
 let _hintIdx = 0;
