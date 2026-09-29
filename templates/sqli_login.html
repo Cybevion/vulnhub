@@ -62,22 +62,15 @@ WHERE username='<span style="color:var(--red);">{input}</span>'
 
       <div style="font-size:12px;color:var(--gray);margin:1rem 0 0.5rem;">Attack payloads to try:</div>
 
-      {% set payloads = [
-        ("' OR '1'='1", "any", "Closes quote, adds always-true condition. Bypasses WHERE clause."),
-        ("admin'--", "anything", "Logs in as admin by commenting out the password check."),
-        ("' OR 1=1--", "x", "Same bypass using numeric comparison."),
-        ("' UNION SELECT 1,'hacked','hacked','hacked@x.com','admin',9999,'x','x'--", "x", "UNION inject to log in with crafted row."),
-      ] %}
-
-      {% for user, pw, desc in payloads %}
+      {% for p in module.payloads %}
       <div style="background:#010409;border:1px solid var(--border);border-radius:5px;padding:0.75rem;margin-bottom:0.5rem;">
         <div style="display:flex;gap:0.5rem;margin-bottom:0.35rem;">
           <span style="font-size:11px;color:var(--gray);">user:</span>
-          <code style="font-size:11px;color:var(--red);">{{ user }}</code>
+          <code style="font-size:11px;color:var(--red);">{{ p.code }}</code>
           <span style="font-size:11px;color:var(--gray);margin-left:0.5rem;">pass:</span>
-          <code style="font-size:11px;color:var(--gray);">{{ pw }}</code>
+          <code style="font-size:11px;color:var(--gray);">{{ p.pw }}</code>
         </div>
-        <div style="font-size:11px;color:var(--gray);">{{ desc }}</div>
+        <div style="font-size:11px;color:var(--gray);">{{ p.desc }}</div>
       </div>
       {% endfor %}
 
