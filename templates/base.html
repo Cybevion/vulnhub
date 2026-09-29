@@ -349,6 +349,11 @@ nav {
 /* ── SPLIT PANE ── */
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 
+/* ── MAIN split: module content (left) + Request Inspector (right) ── */
+.main-split { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.5rem; align-items: start; }
+.main-split .split { grid-template-columns: 1fr; }  /* stack the module's own split so the inspector has room */
+.ms-inspect { position: sticky; top: 110px; }
+
 /* ── RIGHT SIDEBAR (module reference: how-it-works + request inspector) ── */
 .layout.has-right { grid-template-columns: 220px minmax(0, 1fr) 340px; }
 .rightbar { background: var(--bg2); border-left: 1px solid var(--border); padding: 1.25rem 1rem; overflow-y: auto; }
@@ -371,6 +376,10 @@ nav {
 .rb-tog:hover { color: var(--cyan); border-color: var(--cyan); }
 
 /* ── RESP ── */
+@media (max-width: 1200px) {
+  .main-split { grid-template-columns: 1fr; }
+  .ms-inspect { position: static; }
+}
 @media (max-width: 1024px) {
   .layout.has-right { grid-template-columns: 220px 1fr; }
   .rightbar { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--border); }
@@ -561,31 +570,37 @@ nav {
     </div>
     {% endif %}
 
-    {% block content %}{% endblock %}
+    <div class="{% if current_module_id %}main-split{% endif %}">
+      <div class="ms-body">
+        {% block content %}{% endblock %}
+      </div>
 
-    {% if current_module_id %}
-    <div class="card" style="margin-top:1.25rem;">
-      <div class="card-header"><span>🌐</span><span class="card-title">Request Inspector</span></div>
-      {% if request.method == 'POST' or request.query_string %}
-      <div style="font-size:11px;color:var(--gray);margin-bottom:0.6rem;">The exact request the browser just sent — the raw traffic behind this page.</div>
-      <div class="reqview">
-        <div class="rv-tag">HTTP</div>
-        <div class="rv-req">{{ request.method }} {{ request.full_path if request.query_string else request.path }} HTTP/1.1
+      {% if current_module_id %}
+      <aside class="ms-inspect">
+        <div class="card">
+          <div class="card-header"><span>🌐</span><span class="card-title">Request Inspector</span></div>
+          {% if request.method == 'POST' or request.query_string %}
+          <div style="font-size:11px;color:var(--gray);margin-bottom:0.6rem;">The exact request the browser just sent — the raw traffic behind this page.</div>
+          <div class="reqview">
+            <div class="rv-tag">HTTP</div>
+            <div class="rv-req">{{ request.method }} {{ request.full_path if request.query_string else request.path }} HTTP/1.1
 Host: {{ request.host }}
 Cookie: {{ request.headers.get('Cookie', '(none)') }}{% if request.method == 'POST' and request.form %}
 Content-Type: application/x-www-form-urlencoded
 
 {% for k, v in request.form.items() %}{{ k }}={{ v }}{% if not loop.last %}&{% endif %}{% endfor %}{% endif %}</div>
-        <div class="rv-tag" style="margin-top:0.6rem;">CURL</div>
-        <div class="rv-req">curl {% if request.method == 'POST' %}-X POST {% endif %}'{{ request.host_url.rstrip('/') }}{{ request.full_path if request.query_string else request.path }}'{% if request.method == 'POST' and request.form %}{% for k, v in request.form.items() %} \
+            <div class="rv-tag" style="margin-top:0.6rem;">CURL</div>
+            <div class="rv-req">curl {% if request.method == 'POST' %}-X POST {% endif %}'{{ request.host_url.rstrip('/') }}{{ request.full_path if request.query_string else request.path }}'{% if request.method == 'POST' and request.form %}{% for k, v in request.form.items() %} \
   --data-urlencode '{{ k }}={{ v }}'{% endfor %}{% endif %}{% if request.cookies %} \
   -b '{% for k, v in request.cookies.items() %}{{ k }}={{ v }}{% if not loop.last %}; {% endif %}{% endfor %}'{% endif %}</div>
-      </div>
-      {% else %}
-      <div style="font-size:11px;color:var(--gray);">Submit a request (search, form, or payload) and the exact HTTP traffic — plus an equivalent <code>curl</code> — appears here.</div>
+          </div>
+          {% else %}
+          <div style="font-size:11px;color:var(--gray);">Submit a request (search, form, or payload) and the exact HTTP traffic — plus an equivalent <code>curl</code> — appears here.</div>
+          {% endif %}
+        </div>
+      </aside>
       {% endif %}
     </div>
-    {% endif %}
   </main>
 
   {% if current_module_id %}
