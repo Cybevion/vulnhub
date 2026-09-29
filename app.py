@@ -2,6 +2,7 @@ from flask import Flask, request, render_template, redirect, url_for, session, j
 import sqlite3, os, hashlib, hmac, base64, json, time, re, uuid, html
 from functools import wraps
 from datetime import datetime
+from modules import MODULES, MODULES_BY_ID
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey123"   # intentionally weak for JWT demo
@@ -835,6 +836,13 @@ def presentation():
 @app.route("/notes")
 def notes():
     return render_template("notes.html")
+
+@app.route("/api/modules")
+def api_modules():
+    """Canonical module registry (single source of truth for the presenter and
+    the per-module pages). Served as JSON so the presentation view consumes the
+    same data the routes/templates use."""
+    return jsonify(MODULES)
 
 @app.route("/api/presentation/state", methods=["GET"])
 def pres_get_state():

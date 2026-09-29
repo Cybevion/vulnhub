@@ -110,6 +110,28 @@ class TestLabConvenience:
         assert b"logged in as <strong>bob" in r.data
 
 
+class TestModuleRegistry:
+    """The presenter and per-module pages read from one canonical registry
+    served at /api/modules."""
+
+    def test_api_modules_returns_registry(self, client):
+        r = client.get("/api/modules")
+        assert r.status_code == 200
+        data = r.get_json()
+        assert isinstance(data, list) and len(data) >= 13
+        ids = {m["id"] for m in data}
+        assert {"sqli-auth", "idor", "ssti", "jwt", "logic"} <= ids
+
+    def test_registry_entries_have_required_fields(self, client):
+        data = client.get("/api/modules").get_json()
+        for m in data:
+            assert "id" in m and "title" in m and "demoUrl" in m
+            if not m.get("intro"):
+                # real modules must carry the fields the presenter renders
+                for key in ("owasp", "sev", "tagline", "payloads", "vuln_code", "safe_code"):
+                    assert key in m, f"{m['id']} missing {key}"
+
+
 class TestPlatformEndpoints:
     def test_health_ok(self, client):
         r = client.get("/health")
