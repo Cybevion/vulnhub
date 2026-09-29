@@ -21,6 +21,16 @@ class TestSqliAuthBypass:
         with client.session_transaction() as s:
             assert s.get("user_id") is None
 
+    def test_every_listed_payload_actually_bypasses(self, client, mod):
+        # each sqli-auth registry payload, submitted with its own pw hint, must
+        # log in — guards against listing a payload that doesn't work here
+        payloads = mod.MODULES_BY_ID["sqli-auth"]["payloads"]
+        for p in payloads:
+            c = client.application.test_client()
+            c.post("/sqli/login?safe=0", data={"username": p["code"], "password": p.get("pw", "x")})
+            with c.session_transaction() as s:
+                assert s.get("user_id"), f"payload did not log in: {p['code']!r}"
+
 
 class TestSqliUnion:
     PAYLOAD = "%' UNION SELECT id, username, password FROM users-- "

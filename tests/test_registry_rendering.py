@@ -38,6 +38,6 @@ class TestSqliLoginPageUsesRegistry:
     def test_payloads_from_registry(self, client):
         r = client.get("/sqli/login")
         assert r.status_code == 200
-        # registry wording + the added optional pw field both render
-        assert b"bypasses password check" in r.data
-        assert b"anything" in r.data  # pw for the admin'-- payload
+        # registry wording renders, incl. the "both fields" caveat and pw values
+        assert b"comments out the password check" in r.data
+        assert b"BOTH fields" in r.data
