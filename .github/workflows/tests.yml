@@ -15,5 +15,5 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
-      - name: Run the safe/vulnerable contract suite
-        run: pytest
+      - name: Run the test suite with coverage
+        run: pytest --cov=. --cov-report=term-missing

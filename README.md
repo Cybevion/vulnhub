@@ -202,17 +202,23 @@ Returns `200` if the DB is reachable, `503` if degraded.
 
 ## Running the Tests
 
-The test suite locks the **safe/vulnerable contract**: for every module it asserts
-the exploit *fires* in `?safe=0` and is *blocked* in `?safe=1`, plus regression
-tests for previously fixed defects (open-redirect bypass, JWT expiry, SSRF host
-resolution, input-crash guards).
+**134 tests, ~97% coverage.** The suite covers:
+
+- **Contract tests** — for every module, the exploit *fires* in `?safe=0` and is
+  *blocked* in `?safe=1`
+- **Unit tests** — pure helpers (JWT sign/verify, SSRF host resolution, upload
+  magic-byte checks, `safe_mode`) and registry integrity
+- **Regression tests** — previously fixed defects (open-redirect bypass, JWT
+  expiry, SSRF host resolution, input-crash guards, blueprint registration)
+- **Branch tests** — error handling, safe-mode success paths, and edge cases
 
 ```bash
 pip install -r requirements-dev.txt
-pytest
+pytest                       # run the suite
+pytest --cov=. --cov-report=term-missing   # with coverage
 ```
 
-CI runs the same suite on every push via `.github/workflows/tests.yml`.
+CI runs the suite on every push via `.github/workflows/tests.yml`.
 
 ---
 
